@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Plus, Edit, Trash2, ChefHat, X } from 'lucide-react';
-import { Product, Ingredient, RawMaterial, FixedExpense, VariableExpense, Sale } from '../types';
+import { Plus, Edit, Trash2, ChefHat } from 'lucide-react';
+import { Product, RawMaterial, FixedExpense, VariableExpense, Sale } from '../types';
 
 interface ProductFormProps {
   products: Product[];
@@ -27,20 +27,29 @@ export default function ProductForm({
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [newCategory, setNewCategory] = useState('');
-  const [formData, setFormData] = useState<Omit<Product, 'id' | 'createdAt'>>({
-    code: '',
+  const [isIngredientsModalOpen, setIsIngredientsModalOpen] = useState(false);
+  const [newIngredient, setNewIngredient] = useState({
+    rawMaterialId: '',
+    quantity: 0,
+    measurementUnit: ''
+  });
+  const [formData, setFormData] = useState({
     name: '',
     category: '',
+    description: '',
     portionYield: 1,
-    portionUnit: 'porções' as 'porções' | 'kg',
-    ingredients: [] as Ingredient[],
-    sellingPrice: 0
+    portionUnit: 'porções',
+    sellingPrice: 0,
+    marginPercentage: 30, // Porcentagem padrão de margem
+    ingredients: [] as Array<{
+      rawMaterialId: string;
+      quantity: number;
+      unitPrice: number;
+      totalCost: number;
+    }>
   });
 
-  const [newIngredient, setNewIngredient] = useState({
-    materialId: '',
-    quantity: 0
-  });
+  // Removido: newIngredient não é mais necessário
 
   const [categories, setCategories] = useState([
     'Pratos Principais', 'Acompanhamentos', 'Sobremesas', 'Bebidas', 'Entradas', 'Saladas', 'Sopas', 'Outros'
@@ -51,12 +60,13 @@ export default function ProductForm({
     const currentMonth = new Date().getMonth();
     const currentYear = new Date().getFullYear();
     
-    // Faturamento do mês atual
+    // Faturamento do mês atual baseado nas vendas registradas
     const monthlyRevenue = sales.filter(sale => {
-      const saleDate = new Date(sale.date);
+      if (!sale.saleDate) return false;
+      const saleDate = new Date(sale.saleDate);
       return saleDate.getMonth() === currentMonth && 
              saleDate.getFullYear() === currentYear;
-    }).reduce((sum, sale) => sum + sale.totalSales, 0);
+    }).reduce((sum, sale) => sum + (sale.totalSales || 0), 0);
     
     // Despesas fixas mensais (convertendo para mensal se necessário)
     const monthlyFixedExpenses = fixedExpenses
@@ -73,7 +83,8 @@ export default function ProductForm({
     
     // Despesas variáveis do mês atual
     const monthlyVariableExpenses = variableExpenses.filter(expense => {
-      const expenseDate = new Date(expense.date);
+      if (!expense.expenseDate) return false;
+      const expenseDate = new Date(expense.expenseDate);
       return expenseDate.getMonth() === currentMonth && 
              expenseDate.getFullYear() === currentYear;
     }).reduce((sum, expense) => sum + expense.amount, 0);
@@ -81,10 +92,26 @@ export default function ProductForm({
     // Total de despesas mensais
     const totalMonthlyExpenses = monthlyFixedExpenses + monthlyVariableExpenses;
     
-    // Cálculo das porcentagens
-    const fixedExpensesPercentage = monthlyRevenue > 0 ? (monthlyFixedExpenses / monthlyRevenue) * 100 : 0;
-    const variableExpensesPercentage = monthlyRevenue > 0 ? (monthlyVariableExpenses / monthlyRevenue) * 100 : 0;
-    const totalExpensesPercentage = fixedExpensesPercentage + variableExpensesPercentage;
+    // Cálculo das porcentagens baseado no faturamento mensal
+    let fixedExpensesPercentage = 0;
+    let variableExpensesPercentage = 0;
+    let totalExpensesPercentage = 0;
+    
+    if (monthlyRevenue > 0) {
+      fixedExpensesPercentage = (monthlyFixedExpenses / monthlyRevenue) * 100;
+      variableExpensesPercentage = (monthlyVariableExpenses / monthlyRevenue) * 100;
+      totalExpensesPercentage = fixedExpensesPercentage + variableExpensesPercentage;
+    } else {
+      // Se não há faturamento, usar despesas totais como base de cálculo
+      const totalExpenses = totalMonthlyExpenses;
+      if (totalExpenses > 0) {
+        // Calcular baseado em um faturamento estimado mínimo
+        const estimatedRevenue = totalExpenses * 2; // Estimativa de faturamento 2x as despesas
+        fixedExpensesPercentage = (monthlyFixedExpenses / estimatedRevenue) * 100;
+        variableExpensesPercentage = (monthlyVariableExpenses / estimatedRevenue) * 100;
+        totalExpensesPercentage = fixedExpensesPercentage + variableExpensesPercentage;
+      }
+    }
     
     return {
       monthlyRevenue,
@@ -99,49 +126,61 @@ export default function ProductForm({
 
   const expenseData = calculateExpensePercentages();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (editingProduct) {
-      onUpdateProduct(editingProduct.id, formData);
-      setEditingProduct(null);
-    } else {
-      onAddProduct(formData);
+    try {
+      if (editingProduct) {
+        await onUpdateProduct(editingProduct.id, formData);
+        setEditingProduct(null);
+      } else {
+        await onAddProduct(formData);
+      }
+      
+      resetForm();
+      setIsFormOpen(false);
+    } catch (error) {
+      console.error('Erro ao salvar produto:', error);
+      // Aqui você pode adicionar uma notificação de erro para o usuário
     }
-    
-    resetForm();
-    setIsFormOpen(false);
   };
 
   const handleEdit = (product: Product) => {
     setEditingProduct(product);
     setFormData({
-      code: product.code,
       name: product.name,
       category: product.category,
+      description: product.description || '',
       portionYield: product.portionYield,
       portionUnit: product.portionUnit,
-      ingredients: product.ingredients,
-      sellingPrice: product.sellingPrice
+      sellingPrice: product.sellingPrice,
+      marginPercentage: product.marginPercentage || 30,
+      ingredients: product.ingredients || []
     });
     setIsFormOpen(true);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (window.confirm('Tem certeza que deseja excluir este produto?')) {
-      onDeleteProduct(id);
+      try {
+        await onDeleteProduct(id);
+      } catch (error) {
+        console.error('Erro ao deletar produto:', error);
+        // Aqui você pode adicionar uma notificação de erro para o usuário
+      }
     }
   };
 
   const resetForm = () => {
     setFormData({
-      code: '',
       name: '',
       category: '',
+      description: '',
       portionYield: 1,
-      portionUnit: 'porções' as 'porções' | 'kg',
-      ingredients: [] as Ingredient[],
-      sellingPrice: 0
+      portionUnit: 'porções',
+      sellingPrice: 0,
+      marginPercentage: 30,
+      ingredients: []
     });
     setEditingProduct(null);
   };
@@ -152,41 +191,7 @@ export default function ProductForm({
     setIsFormOpen(false);
   };
 
-  const addIngredient = () => {
-    if (!newIngredient.materialId || newIngredient.quantity <= 0) return;
-
-    const material = rawMaterials.find(m => m.id === newIngredient.materialId);
-    if (!material) return;
-
-    const ingredient: Ingredient = {
-      id: Date.now().toString(),
-      code: material.code,
-      name: material.name,
-      householdMeasure: `${newIngredient.quantity} ${material.measurementUnit}`,
-      measurementUnit: material.measurementUnit,
-      grossQuantity: newIngredient.quantity,
-      netQuantity: newIngredient.quantity,
-      correctionFactor: 1,
-      unitPrice: material.unitPrice,
-      totalCost: material.unitPrice * newIngredient.quantity
-    };
-
-    setFormData({
-      ...formData,
-      ingredients: [...formData.ingredients, ingredient]
-    });
-    setNewIngredient({
-      materialId: '',
-      quantity: 0
-    });
-  };
-
-  const removeIngredient = (ingredientId: string) => {
-    setFormData({
-      ...formData,
-      ingredients: formData.ingredients.filter(ing => ing.id !== ingredientId)
-    });
-  };
+  // Removido: funções de ingredientes não são mais necessárias
 
   const handleCategorySelect = (category: string) => {
     if (category === 'create-new') {
@@ -205,27 +210,91 @@ export default function ProductForm({
     }
   };
 
-  // Cálculos para o produto
+  const handleAddIngredient = () => {
+    if (newIngredient.rawMaterialId && newIngredient.quantity > 0) {
+      const selectedMaterial = rawMaterials.find(m => m.id === newIngredient.rawMaterialId);
+      if (selectedMaterial) {
+        const totalCost = selectedMaterial.unitPrice * newIngredient.quantity;
+        const ingredient = {
+          rawMaterialId: newIngredient.rawMaterialId,
+          quantity: newIngredient.quantity,
+          unitPrice: selectedMaterial.unitPrice,
+          totalCost: totalCost
+        };
+        
+        setFormData({
+          ...formData,
+          ingredients: [...formData.ingredients, ingredient]
+        });
+        
+        setNewIngredient({
+          rawMaterialId: '',
+          quantity: 0,
+          measurementUnit: ''
+        });
+        setIsIngredientsModalOpen(false);
+      }
+    }
+  };
+
+  const handleRemoveIngredient = (index: number) => {
+    const updatedIngredients = formData.ingredients.filter((_, i) => i !== index);
+    setFormData({
+      ...formData,
+      ingredients: updatedIngredients
+    });
+  };
+
+  // Cálculo do custo dos ingredientes do produto
   const calculateRecipeCost = () => {
-    return formData.ingredients.reduce((sum, ingredient) => sum + ingredient.totalCost, 0);
+    if (!formData.ingredients || formData.ingredients.length === 0) {
+      return 0;
+    }
+    
+    return formData.ingredients.reduce((total, ingredient) => {
+      return total + ingredient.totalCost;
+    }, 0);
   };
 
   const calculateSuggestedPrice = () => {
     const recipeCost = calculateRecipeCost();
     const totalExpensePercentage = expenseData.totalExpensesPercentage / 100;
     
-    if (totalExpensePercentage >= 1) return 0; // Evita divisão por zero ou valores negativos
+    // Se não há custo de insumos, usar o preço de venda como base
+    if (recipeCost <= 0) {
+      if (formData.sellingPrice > 0) {
+        // Calcular baseado no preço de venda + margem
+        return formData.sellingPrice * (1 + (formData.marginPercentage / 100));
+      }
+      return 0;
+    }
     
-    // Fórmula: Preço Sugerido = Custo dos Insumos / (1 - %Total de Despesas)
-    const suggestedPrice = recipeCost / (1 - totalExpensePercentage);
-    return Math.round(suggestedPrice * 100) / 100;
+    // Se as despesas são 100% ou mais, não é possível calcular
+    if (totalExpensePercentage >= 1) {
+      // Calcular baseado apenas no custo + margem
+      return recipeCost * (1 + (formData.marginPercentage / 100));
+    }
+    
+    // Fórmula: Preço Sugerido = (Custo dos Insumos + %Despesas) + Margem
+    const basePrice = recipeCost / (1 - totalExpensePercentage);
+    const priceWithMargin = basePrice * (1 + (formData.marginPercentage / 100));
+    
+    return Math.round(priceWithMargin * 100) / 100;
   };
 
   const calculateProfit = () => {
     const recipeCost = calculateRecipeCost();
-    const fixedExpensesCost = (formData.sellingPrice * expenseData.fixedExpensesPercentage) / 100;
-    const variableExpensesCost = (formData.sellingPrice * expenseData.variableExpensesPercentage) / 100;
-    return formData.sellingPrice - recipeCost - fixedExpensesCost - variableExpensesCost;
+    
+    // Calcular custo das despesas baseado no preço de venda
+    let expensesCost = 0;
+    if (expenseData.totalExpensesPercentage > 0) {
+      expensesCost = (formData.sellingPrice * expenseData.totalExpensesPercentage) / 100;
+    }
+    
+    // Lucro = Preço de Venda - Custo dos Insumos - Custo das Despesas
+    const profit = formData.sellingPrice - recipeCost - expensesCost;
+    
+    return Math.round(profit * 100) / 100;
   };
 
   const recipeCost = calculateRecipeCost();
@@ -251,12 +320,12 @@ export default function ProductForm({
           <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full mx-4">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Criar Nova Categoria</h3>
             <div className="space-y-4">
-              <div>
+          <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Nome da Categoria
-                </label>
-                <input
-                  type="text"
+            </label>
+            <input
+              type="text"
                   value={newCategory}
                   onChange={(e) => setNewCategory(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
@@ -288,14 +357,105 @@ export default function ProductForm({
         </div>
       )}
 
+      {/* Modal para adicionar ingredientes */}
+      {isIngredientsModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Adicionar Insumo</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Insumo
+                </label>
+                <select
+                  value={newIngredient.rawMaterialId}
+                  onChange={(e) => {
+                    const material = rawMaterials.find(m => m.id === e.target.value);
+                    setNewIngredient({
+                      ...newIngredient,
+                      rawMaterialId: e.target.value,
+                      measurementUnit: material?.measurementUnit || ''
+                    });
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  required
+                >
+                  <option value="">Selecione um insumo</option>
+                  {rawMaterials.map(material => (
+                    <option key={material.id} value={material.id}>
+                      {material.name} - R$ {material.unitPrice.toFixed(2)}/{material.measurementUnit}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Quantidade
+                </label>
+                <div className="flex space-x-2">
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={newIngredient.quantity === 0 ? '' : newIngredient.quantity}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setNewIngredient({
+                        ...newIngredient,
+                        quantity: value === '' ? 0 : parseFloat(value) || 0
+                      });
+                    }}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+              required
+            />
+                  <span className="px-3 py-2 text-gray-500 bg-gray-100 rounded-md">
+                    {newIngredient.measurementUnit || 'unidade'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsIngredientsModalOpen(false);
+                    setNewIngredient({
+                      rawMaterialId: '',
+                      quantity: 0,
+                      measurementUnit: ''
+                    });
+                  }}
+                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAddIngredient}
+                  className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+                >
+                  Adicionar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Resumo das despesas mensais */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-blue-900 mb-4">📊 Resumo Financeiro do Mês</h3>
+        <h3 className="text-lg font-semibold text-blue-900 mb-4">
+          Resumo Financeiro do Mês ({new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })})
+        </h3>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
           <div className="bg-white p-3 rounded-lg">
             <span className="text-blue-600 font-medium">Faturamento Mensal:</span>
             <div className="text-lg font-bold text-green-600">
               R$ {expenseData.monthlyRevenue.toFixed(2)}
+            </div>
+            <div className="text-xs text-gray-500 mt-1">
+              Da página Vendas
             </div>
           </div>
           <div className="bg-white p-3 rounded-lg">
@@ -303,11 +463,17 @@ export default function ProductForm({
             <div className="text-lg font-bold text-red-600">
               R$ {expenseData.monthlyFixedExpenses.toFixed(2)}
             </div>
+            <div className="text-xs text-gray-500 mt-1">
+              Mensalizado
+            </div>
           </div>
           <div className="bg-white p-3 rounded-lg">
             <span className="text-blue-600 font-medium">Despesas Variáveis:</span>
             <div className="text-lg font-bold text-red-600">
               R$ {expenseData.monthlyVariableExpenses.toFixed(2)}
+            </div>
+            <div className="text-xs text-gray-500 mt-1">
+              Do mês atual
             </div>
           </div>
           <div className="bg-white p-3 rounded-lg">
@@ -315,11 +481,24 @@ export default function ProductForm({
             <div className="text-lg font-bold text-orange-600">
               {expenseData.totalExpensesPercentage.toFixed(1)}%
             </div>
+            <div className="text-xs text-gray-500 mt-1">
+              {expenseData.monthlyRevenue > 0 ? 'Baseado no faturamento' : 'Estimativa calculada'}
+            </div>
           </div>
         </div>
-        <p className="text-xs text-blue-700 mt-3">
-          💡 As porcentagens de despesas são calculadas automaticamente baseadas no faturamento real do mês
-        </p>
+        <div className="mt-4 p-3 bg-white rounded-lg">
+          <p className="text-xs text-blue-700">
+            <strong>Como funciona:</strong> O faturamento é captado da página <strong>Vendas</strong> 
+            (campo "Total de Vendas" de cada dia do mês). As despesas são calculadas automaticamente 
+            baseadas neste faturamento real.
+          </p>
+          {expenseData.monthlyRevenue === 0 && (
+            <p className="text-xs text-orange-600 mt-2">
+              <strong>Atenção:</strong> Nenhuma venda foi registrada este mês. 
+              Usando estimativa baseada nas despesas para calcular porcentagens.
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Formulário */}
@@ -332,33 +511,32 @@ export default function ProductForm({
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Informações básicas */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Código
-                </label>
-                <input
-                  type="text"
-                  value={formData.code}
-                  onChange={(e) => setFormData({...formData, code: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  required
-                />
-              </div>
-              
-              <div>
+          <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Nome
-                </label>
-                <input
-                  type="text"
+            </label>
+            <input
+              type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({...formData, name: e.target.value})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  required
-                />
-              </div>
-              
-              <div>
+              required
+            />
+          </div>
+
+          <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Descrição
+            </label>
+            <input
+              type="text"
+                  value={formData.description}
+                  onChange={(e) => setFormData({...formData, description: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+            />
+          </div>
+
+          <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Categoria
                 </label>
@@ -370,7 +548,7 @@ export default function ProductForm({
                 >
                   <option value="">Selecione uma categoria</option>
                   <option value="create-new" className="font-semibold text-orange-600 border-t border-gray-200">
-                    ➕ Criar nova categoria
+                    Criar nova categoria
                   </option>
                   {categories.map(cat => (
                     <option key={cat} value={cat}>{cat}</option>
@@ -380,189 +558,207 @@ export default function ProductForm({
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Rendimento
-                </label>
+              Rendimento
+            </label>
                 <div className="flex space-x-2">
-                  <input
-                    type="number"
-                    step="0.1"
+            <input
+              type="number"
+              step="0.1"
                     min="0"
-                    value={formData.portionYield}
-                    onChange={(e) => setFormData({...formData, portionYield: parseFloat(e.target.value) || 0})}
+                    value={formData.portionYield === 0 ? '' : formData.portionYield}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setFormData({...formData, portionYield: value === '' ? 0 : parseFloat(value) || 0})
+                    }}
                     className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                     required
                   />
-                  <select
+            <select
                     value={formData.portionUnit}
-                    onChange={(e) => setFormData({...formData, portionUnit: e.target.value as 'porções' | 'kg'})}
+                    onChange={(e) => setFormData({...formData, portionUnit: e.target.value})}
                     className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                   >
                     <option value="porções">porções</option>
                     <option value="kg">kg</option>
-                  </select>
-                </div>
-              </div>
-            </div>
+                    <option value="unidades">unidades</option>
+                    <option value="litros">litros</option>
+            </select>
+          </div>
+        </div>
+      </div>
 
-            {/* Adicionar ingrediente */}
+            {/* Sistema de Ingredientes */}
             <div className="border-t pt-6">
-              <h4 className="text-lg font-medium text-gray-900 mb-4">Adicionar Ingrediente</h4>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Insumo
-                  </label>
-                  <select
-                    value={newIngredient.materialId}
-                    onChange={(e) => setNewIngredient({...newIngredient, materialId: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  >
-                    <option value="">Selecione um insumo</option>
-                    {rawMaterials.map(material => (
-                      <option key={material.id} value={material.id}>
-                        {material.name} - R$ {material.unitPrice.toFixed(2)}/{material.measurementUnit}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Quantidade
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={newIngredient.quantity}
-                    onChange={(e) => setNewIngredient({...newIngredient, quantity: parseFloat(e.target.value) || 0})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  />
-                </div>
-                
-                <div className="flex items-end">
-                  <button
-                    type="button"
-                    onClick={addIngredient}
-                    className="w-full px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors"
-                  >
-                    Adicionar Insumo
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Lista de ingredientes */}
-            {formData.ingredients.length > 0 && (
-              <div className="border-t pt-6">
-                <h4 className="text-lg font-medium text-gray-900 mb-4">Ingredientes do Produto</h4>
-                <div className="space-y-2">
-                  {formData.ingredients.map((ingredient) => (
-                    <div key={ingredient.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div className="flex-1">
-                        <span className="font-medium">{ingredient.name}</span>
-                        <span className="text-gray-500 ml-2">
-                          {ingredient.grossQuantity} {ingredient.measurementUnit} 
-                          (R$ {ingredient.totalCost.toFixed(2)})
-                        </span>
-                      </div>
+              <div className="flex justify-between items-center mb-4">
+                <h4 className="text-lg font-medium text-gray-900">Ingredientes do Produto</h4>
+            <button
+              type="button"
+                  onClick={() => setIsIngredientsModalOpen(true)}
+                  className="flex items-center px-3 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-sm"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+                  Adicionar Insumo
+            </button>
+          </div>
+              
+              {/* Lista de ingredientes */}
+              {formData.ingredients.length > 0 ? (
+                <div className="space-y-3">
+                  {formData.ingredients.map((ingredient, index) => {
+                    const material = rawMaterials.find(m => m.id === ingredient.rawMaterialId);
+                    return (
+                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div className="flex-1">
+                          <div className="font-medium text-gray-900">
+                            {material?.name || 'Insumo não encontrado'}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {ingredient.quantity} {material?.measurementUnit} × R$ {ingredient.unitPrice.toFixed(2)} = R$ {ingredient.totalCost.toFixed(2)}
+        </div>
+                    </div>
                       <button
                         type="button"
-                        onClick={() => removeIngredient(ingredient.id)}
-                        className="text-red-600 hover:text-red-800"
+                          onClick={() => handleRemoveIngredient(index)}
+                          className="text-red-600 hover:text-red-800 p-1"
                       >
-                        <X className="h-4 w-4" />
+                          <Trash2 className="h-4 w-4" />
                       </button>
+                      </div>
+                    );
+                  })}
+                  <div className="p-3 bg-blue-50 rounded-lg">
+                    <div className="text-sm font-medium text-blue-900">
+                      Custo Total dos Insumos: R$ {calculateRecipeCost().toFixed(2)}
                     </div>
-                  ))}
+        </div>
+      </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <p>Nenhum insumo adicionado ainda.</p>
+                  <p className="text-sm">Clique em "Adicionar Insumo" para começar.</p>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
 
             {/* Preços e despesas */}
             <div className="border-t pt-6">
               <h4 className="text-lg font-medium text-gray-900 mb-4">Preços e Despesas</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
+            <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Valor de Venda (R$)
-                  </label>
-                  <input
-                    type="number"
+              </label>
+              <input
+                type="number"
                     step="0.01"
-                    min="0"
-                    value={formData.sellingPrice}
-                    onChange={(e) => setFormData({...formData, sellingPrice: parseFloat(e.target.value) || 0})}
+                min="0"
+                    value={formData.sellingPrice === 0 ? '' : formData.sellingPrice}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setFormData({...formData, sellingPrice: value === '' ? 0 : parseFloat(value) || 0})
+                    }}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                     required
-                  />
-                </div>
-                
-                <div>
+              />
+            </div>
+
+            <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Preço Sugerido (R$)
-                  </label>
-                  <input
-                    type="number"
+              </label>
+              <input
+                type="number"
                     value={suggestedPrice}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
                     readOnly
                   />
-                  <p className="text-xs text-gray-500 mt-1">Para ficar no 0 a 0 com custos</p>
+                  <p className="text-xs text-gray-500 mt-1">Para ficar no 0 a 0 com custos + margem</p>
                 </div>
-              </div>
+            </div>
+
+            <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Porcentagem de Margem (%)
+              </label>
+              <input
+                type="number"
+                  step="0.1"
+                min="0"
+                  max="100"
+                  value={formData.marginPercentage}
+                  onChange={(e) => setFormData({...formData, marginPercentage: parseFloat(e.target.value) || 0})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="30"
+                />
+                <p className="text-xs text-gray-500 mt-1">Recomendação: 28% a 32% da margem dos custos</p>
+            </div>
 
               {/* Resumo financeiro do produto */}
               <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-                <h5 className="text-sm font-medium text-blue-900 mb-3">📊 Análise Financeira do Produto</h5>
+                <h5 className="text-sm font-medium text-blue-900 mb-3">Análise Financeira do Produto</h5>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
                   <div>
                     <span className="text-gray-600">Custo dos Insumos:</span>
                     <span className="ml-2 font-medium">R$ {recipeCost.toFixed(2)}</span>
                   </div>
-                  <div>
+            <div>
                     <span className="text-gray-600">% Despesas Fixas:</span>
                     <span className="ml-2 font-medium text-blue-600">{expenseData.fixedExpensesPercentage.toFixed(1)}%</span>
-                  </div>
-                  <div>
+            </div>
+            <div>
                     <span className="text-gray-600">% Despesas Variáveis:</span>
                     <span className="ml-2 font-medium text-blue-600">{expenseData.variableExpensesPercentage.toFixed(1)}%</span>
-                  </div>
+            </div>
                   <div>
                     <span className="text-gray-600">Lucro/Prejuízo:</span>
                     <span className={`ml-2 font-medium ${profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                       R$ {profit.toFixed(2)}
                     </span>
-                  </div>
-                </div>
+          </div>
+        </div>
                 <div className="mt-3 p-3 bg-white rounded-lg">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-gray-700">Margem de Lucro:</span>
                     <span className={`text-sm font-bold ${profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                       {formData.sellingPrice > 0 ? ((profit / formData.sellingPrice) * 100).toFixed(1) : '0'}%
                     </span>
-                  </div>
-                  <div className="mt-2 text-xs text-gray-500">
-                    💡 Baseado no faturamento mensal de R$ {expenseData.monthlyRevenue.toFixed(2)} e despesas totais de {expenseData.totalExpensesPercentage.toFixed(1)}%
-                  </div>
-                </div>
-              </div>
             </div>
-            
-            <div className="flex justify-end space-x-3 pt-4">
-              <button
-                type="button"
-                onClick={cancelEdit}
-                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
-              >
-                {editingProduct ? 'Atualizar' : 'Cadastrar'}
-              </button>
+                  <div className="mt-2 text-xs text-gray-500">
+                    Baseado no faturamento mensal de R$ {expenseData.monthlyRevenue.toFixed(2)} (da página Vendas) e despesas totais de {expenseData.totalExpensesPercentage.toFixed(1)}%
+          </div>
+        </div>
+      </div>
+
+              {/* Recomendação de Margem */}
+              <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <h5 className="text-sm font-medium text-yellow-800 mb-2">💡 Recomendação de Margem</h5>
+                <p className="text-sm text-yellow-700">
+                  Para produtos de alimentação, a <strong>margem recomendada é entre 28% a 32%</strong> dos custos totais. 
+                  Esta margem garante uma rentabilidade saudável considerando:
+                </p>
+                <ul className="text-xs text-yellow-600 mt-2 space-y-1">
+                  <li>• Custos operacionais e administrativos</li>
+                  <li>• Impostos e taxas</li>
+                  <li>• Margem de lucro sustentável</li>
+                  <li>• Competitividade no mercado</li>
+                </ul>
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-4">
+        <button
+          type="button"
+                  onClick={cancelEdit}
+                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+        >
+          Cancelar
+        </button>
+        <button
+          type="submit"
+                  className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+                >
+                  {editingProduct ? 'Atualizar' : 'Cadastrar'}
+                </button>
+              </div>
             </div>
           </form>
         </div>
@@ -606,19 +802,29 @@ export default function ProductForm({
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {products.map((product) => {
-                const productRecipeCost = product.ingredients.reduce((sum, ingredient) => sum + ingredient.totalCost, 0);
-                const productProfit = (product.sellingPrice || 0) - productRecipeCost -
-                  ((product.sellingPrice || 0) * expenseData.fixedExpensesPercentage / 100) -
-                  ((product.sellingPrice || 0) * expenseData.variableExpensesPercentage / 100);
+                const productRecipeCost = (product.ingredients || []).reduce((total, ingredient) => {
+                  return total + ingredient.totalCost;
+                }, 0);
                 
-                const productSuggestedPrice = productRecipeCost / (1 - (expenseData.totalExpensesPercentage / 100));
+                // Calcular lucro do produto
+                const productExpensesCost = (product.sellingPrice || 0) * (expenseData.totalExpensesPercentage / 100);
+                const productProfit = (product.sellingPrice || 0) - productRecipeCost - productExpensesCost;
+                
+                // Calcular preço sugerido
+                let productSuggestedPrice = 0;
+                if (productRecipeCost > 0 && expenseData.totalExpensesPercentage < 100) {
+                  const basePrice = productRecipeCost / (1 - (expenseData.totalExpensesPercentage / 100));
+                  productSuggestedPrice = basePrice * (1 + ((product.marginPercentage || 30) / 100));
+                } else if (product.sellingPrice > 0) {
+                  productSuggestedPrice = (product.sellingPrice || 0) * (1 + ((product.marginPercentage || 30) / 100));
+                }
 
                 return (
                   <tr key={product.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
                         <div className="text-sm font-medium text-gray-900">{product.name}</div>
-                        <div className="text-sm text-gray-500">{product.code}</div>
+                        <div className="text-sm text-gray-500">ID: {product.id.slice(0, 8)}</div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -654,7 +860,7 @@ export default function ProductForm({
                           className="text-red-600 hover:text-red-900"
                         >
                           <Trash2 className="h-4 w-4" />
-                        </button>
+        </button>
                       </div>
                     </td>
                   </tr>

@@ -13,13 +13,20 @@ export interface Ingredient {
 
 export interface Product {
   id: string;
-  code: string;
+  clientId: string;
   name: string;
   category: string;
+  description?: string;
   portionYield: number;
-  portionUnit: 'porções' | 'kg';
-  ingredients: Ingredient[];
+  portionUnit: string;
   sellingPrice: number;
+  marginPercentage?: number;
+  ingredients?: Array<{
+    rawMaterialId: string;
+    quantity: number;
+    unitPrice: number;
+    totalCost: number;
+  }>;
   lastModified: Date;
   createdAt: Date;
 }
@@ -34,6 +41,7 @@ export interface CostCalculation {
 // Novos tipos para insumos
 export interface RawMaterial {
   id: string;
+  clientId: string;
   code: string;
   name: string;
   category: string;
@@ -42,13 +50,14 @@ export interface RawMaterial {
   supplier: string;
   minimumStock: number;
   currentStock: number;
-  lastPurchaseDate: Date;
   createdAt: Date;
+  updatedAt: Date;
 }
 
 // Tipos para despesas
 export interface FixedExpense {
   id: string;
+  clientId: string;
   name: string;
   description: string;
   amount: number;
@@ -57,14 +66,16 @@ export interface FixedExpense {
   category: string;
   isActive: boolean;
   createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface VariableExpense {
   id: string;
+  clientId: string;
   name: string;
   description: string;
   amount: number;
-  date: Date;
+  expenseDate: Date;
   category: string;
   paymentMethod: string;
   receipt?: string;
@@ -73,10 +84,30 @@ export interface VariableExpense {
 
 export interface Sale {
   id: string;
-  date: Date;
+  clientId: string;
+  saleDate: Date;
   totalSales: number;
   numberOfOrders: number;
   averageTicket: number;
   notes?: string;
   createdAt: Date;
+}
+
+export interface Client {
+  id: string;
+  email: string;
+  name: string;
+  companyName: string;
+  phone?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  isActive: boolean;
+}
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  name: string;
+  companyName: string;
+  phone?: string;
 }

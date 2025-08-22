@@ -1,81 +1,122 @@
 import React, { useState } from 'react';
-import { Plus, Edit, Trash2, TrendingUp, Calendar, DollarSign, BarChart3 } from 'lucide-react';
 import { Sale } from '../types';
 
 interface SalesFormProps {
   sales: Sale[];
-  onAddSale: (sale: Omit<Sale, 'id' | 'createdAt'>) => void;
-  onUpdateSale: (id: string, sale: Omit<Sale, 'id' | 'createdAt'>) => void;
+  onAddSale: (saleData: Omit<Sale, 'id' | 'createdAt'>) => void;
+  onUpdateSale: (id: string, saleData: Partial<Sale>) => void;
   onDeleteSale: (id: string) => void;
 }
 
-export default function SalesForm({
+const SalesForm: React.FC<SalesFormProps> = ({
   sales,
   onAddSale,
   onUpdateSale,
   onDeleteSale
-}: SalesFormProps) {
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingSale, setEditingSale] = useState<Sale | null>(null);
+}) => {
+  // Filtrar vendas do mês selecionado (padrão: mês atual)
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  });
+
+  const getCurrentMonthSales = () => {
+    const [year, month] = selectedMonth.split('-').map(Number);
+    
+    console.log('Filtrando vendas para:', { year, month, selectedMonth });
+    console.log('Total de vendas disponíveis:', sales.length);
+    
+    const filteredSales = sales.filter(sale => {
+      if (!sale.saleDate) {
+        console.log('Venda sem data:', sale);
+        return false;
+      }
+      
+      const saleDate = new Date(sale.saleDate);
+      const saleMonth = saleDate.getMonth();
+      const saleYear = saleDate.getFullYear();
+      
+      console.log('Verificando venda:', {
+        saleDate: sale.saleDate,
+        parsedDate: saleDate,
+        saleMonth,
+        saleYear,
+        targetMonth: month - 1,
+        targetYear: year,
+        matches: saleMonth === month - 1 && saleYear === year
+      });
+      
+      return saleMonth === month - 1 && saleYear === year;
+    });
+    
+    console.log('Vendas filtradas:', filteredSales);
+    return filteredSales;
+  };
+
+  const currentMonthSales = getCurrentMonthSales();
+  const [isAdding, setIsAdding] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
-    date: new Date(),
-    totalSales: 0,
-    numberOfOrders: 0,
-    averageTicket: 0,
+    date: new Date().toISOString().split('T')[0],
+    totalSales: '',
+    numberOfOrders: '',
+    averageTicket: '',
     notes: ''
   });
+
+  const resetForm = () => {
+    setFormData({
+      date: new Date().toISOString().split('T')[0],
+      totalSales: '',
+      numberOfOrders: '',
+      averageTicket: '',
+      notes: ''
+    });
+    setEditingId(null);
+    setIsAdding(false);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (editingSale) {
-      onUpdateSale(editingSale.id, formData);
-      setEditingSale(null);
-    } else {
-      onAddSale(formData);
+    if (!formData.date || !formData.totalSales || !formData.numberOfOrders) {
+      alert('Por favor, preencha todos os campos obrigatórios');
+      return;
     }
-    
+
+    const saleData = {
+      saleDate: new Date(formData.date),
+      totalSales: parseFloat(formData.totalSales),
+      numberOfOrders: parseInt(formData.numberOfOrders),
+      averageTicket: formData.averageTicket ? parseFloat(formData.averageTicket) : 0,
+      notes: formData.notes || undefined
+    };
+
+    if (editingId) {
+      onUpdateSale(editingId, saleData);
+    } else {
+      onAddSale(saleData);
+    }
+
     resetForm();
-    setIsFormOpen(false);
   };
 
   const handleEdit = (sale: Sale) => {
-    setEditingSale(sale);
+    setEditingId(sale.id);
     setFormData({
-      date: sale.date,
-      totalSales: sale.totalSales,
-      numberOfOrders: sale.numberOfOrders,
-      averageTicket: sale.averageTicket,
+      date: sale.saleDate.toISOString().split('T')[0],
+      totalSales: sale.totalSales.toString(),
+      numberOfOrders: sale.numberOfOrders.toString(),
+      averageTicket: sale.averageTicket.toString(),
       notes: sale.notes || ''
     });
-    setIsFormOpen(true);
+    setIsAdding(true);
   };
 
   const handleDelete = (id: string) => {
     if (window.confirm('Tem certeza que deseja excluir esta venda?')) {
       onDeleteSale(id);
     }
-  };
-
-  const resetForm = () => {
-    setFormData({
-      date: new Date(),
-      totalSales: 0,
-      numberOfOrders: 0,
-      averageTicket: 0,
-      notes: ''
-    });
-    setEditingSale(null);
-  };
-
-  const cancelEdit = () => {
-    setEditingSale(null);
-    resetForm();
-    setIsFormOpen(false);
-  };
-
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('pt-BR');
   };
 
   const formatCurrency = (value: number) => {
@@ -85,220 +126,99 @@ export default function SalesForm({
     }).format(value);
   };
 
-  // Cálculos para o resumo
-  const getCurrentMonthSales = () => {
-    const currentMonth = new Date().getMonth();
-    const currentYear = new Date().getFullYear();
-    
-    return sales.filter(sale => {
-      const saleDate = new Date(sale.date);
-      return saleDate.getMonth() === currentMonth && 
-             saleDate.getFullYear() === currentYear;
-    });
+  const formatDate = (date: Date) => {
+    return new Intl.DateTimeFormat('pt-BR').format(date);
   };
 
-  const getCurrentYearSales = () => {
-    const currentYear = new Date().getFullYear();
-    
-    return sales.filter(sale => {
-      const saleDate = new Date(sale.date);
-      return saleDate.getFullYear() === currentYear;
-    });
-  };
-
-  const currentMonthSales = getCurrentMonthSales();
-  const currentYearSales = getCurrentYearSales();
-  
-  const totalMonthSales = currentMonthSales.reduce((sum, sale) => sum + sale.totalSales, 0);
-  const totalYearSales = currentYearSales.reduce((sum, sale) => sum + sale.totalSales, 0);
-  const totalMonthOrders = currentMonthSales.reduce((sum, sale) => sum + sale.numberOfOrders, 0);
-  const totalYearOrders = currentYearSales.reduce((sum, sale) => sum + sale.numberOfOrders, 0);
-  
-  const averageMonthTicket = totalMonthOrders > 0 ? totalMonthSales / totalMonthOrders : 0;
-  const averageYearTicket = totalYearOrders > 0 ? totalYearSales / totalYearOrders : 0;
-
-  // Vendas por dia da semana
-  const salesByWeekday = sales.reduce((acc, sale) => {
-    const day = new Date(sale.date).toLocaleDateString('pt-BR', { weekday: 'long' });
-    acc[day] = (acc[day] || 0) + sale.totalSales;
-    return acc;
-  }, {} as Record<string, number>);
-
-  const topWeekdays = Object.entries(salesByWeekday)
-    .sort(([,a], [,b]) => b - a)
-    .slice(0, 3);
+  // Debug: mostrar informações sobre as vendas
+  console.log('Todas as vendas:', sales);
+  console.log('Mês selecionado:', selectedMonth);
+  console.log('Vendas filtradas:', currentMonthSales);
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900">Registro de Vendas</h2>
-        <button
-          onClick={() => setIsFormOpen(true)}
-          className="flex items-center px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Nova Venda
-        </button>
-      </div>
-
-      {/* Resumo financeiro */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center">
-            <TrendingUp className="h-8 w-8 text-green-600" />
-            <div className="ml-3">
-              <p className="text-sm font-medium text-gray-600">Vendas Este Mês</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {formatCurrency(totalMonthSales)}
+    <div className="max-w-6xl mx-auto p-6">
+      <div className="bg-white rounded-lg shadow-lg p-6">
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-800">
+              {editingId ? 'Editar Venda' : 'Gerenciar Vendas'}
+            </h2>
+            <div className="flex flex-col gap-2">
+              <p className="text-sm text-gray-600">
+                Mostrando vendas de {new Date(selectedMonth + '-01').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
               </p>
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center">
-            <Calendar className="h-8 w-8 text-blue-600" />
-            <div className="ml-3">
-              <p className="text-sm font-medium text-gray-600">Vendas Este Ano</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {formatCurrency(totalYearSales)}
-              </p>
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center">
-            <BarChart3 className="h-8 w-8 text-orange-600" />
-            <div className="ml-3">
-              <p className="text-sm font-medium text-gray-600">Pedidos Este Mês</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {totalMonthOrders}
-              </p>
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center">
-            <DollarSign className="h-8 w-8 text-purple-600" />
-            <div className="ml-3">
-              <p className="text-sm font-medium text-gray-600">Ticket Médio Mensal</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {formatCurrency(averageMonthTicket)}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Top dias da semana */}
-      {topWeekdays.length > 0 && (
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Melhores Dias da Semana</h3>
-          <div className="space-y-3">
-            {topWeekdays.map(([weekday, amount], index) => (
-              <div key={weekday} className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                    index === 0 ? 'bg-yellow-100 text-yellow-800' :
-                    index === 1 ? 'bg-gray-100 text-gray-800' :
-                    'bg-orange-100 text-orange-800'
-                  }`}>
-                    {index + 1}
-                  </span>
-                  <span className="text-sm font-medium text-gray-700 capitalize">{weekday}</span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <div className="w-32 bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-orange-500 h-2 rounded-full" 
-                      style={{ 
-                        width: `${(amount / Math.max(...Object.values(salesByWeekday))) * 100}%` 
-                      }}
-                    ></div>
-                  </div>
-                  <span className="text-sm font-medium text-gray-900 w-24 text-right">
-                    {formatCurrency(amount)}
-                  </span>
-                </div>
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-gray-600">Selecionar mês:</label>
+                <input
+                  type="month"
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(e.target.value)}
+                  className="px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                />
               </div>
-            ))}
+            </div>
           </div>
+          <button
+            onClick={() => setIsAdding(!isAdding)}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              isAdding
+                ? 'bg-gray-500 text-white hover:bg-gray-600'
+                : 'bg-blue-600 text-white hover:bg-blue-700'
+            }`}
+          >
+            {isAdding ? 'Cancelar' : 'Nova Venda'}
+          </button>
         </div>
-      )}
 
-      {/* Formulário */}
-      {isFormOpen && (
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            {editingSale ? 'Editar Venda' : 'Nova Venda'}
-          </h3>
-          
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {isAdding && (
+          <form onSubmit={handleSubmit} className="bg-gray-50 rounded-lg p-6 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Data
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Data *
                 </label>
                 <input
                   type="date"
-                  value={formData.date.toISOString().split('T')[0]}
-                  onChange={(e) => setFormData({...formData, date: new Date(e.target.value)})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  value={formData.date}
+                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 />
               </div>
-              
+
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Total de Vendas (R$)
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Total de Vendas (R$) *
                 </label>
                 <input
                   type="number"
                   step="0.01"
                   min="0"
                   value={formData.totalSales}
-                  onChange={(e) => {
-                    const totalSales = parseFloat(e.target.value) || 0;
-                    const numberOfOrders = formData.numberOfOrders;
-                    const averageTicket = numberOfOrders > 0 ? totalSales / numberOfOrders : 0;
-                    setFormData({
-                      ...formData,
-                      totalSales,
-                      averageTicket: Math.round(averageTicket * 100) / 100
-                    });
-                  }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  onChange={(e) => setFormData({ ...formData, totalSales: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="0.00"
                   required
                 />
               </div>
-              
+
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Número de Pedidos
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Número de Pedidos *
                 </label>
                 <input
                   type="number"
                   min="1"
                   value={formData.numberOfOrders}
-                  onChange={(e) => {
-                    const numberOfOrders = parseInt(e.target.value) || 0;
-                    const totalSales = formData.totalSales;
-                    const averageTicket = numberOfOrders > 0 ? totalSales / numberOfOrders : 0;
-                    setFormData({
-                      ...formData,
-                      numberOfOrders,
-                      averageTicket: Math.round(averageTicket * 100) / 100
-                    });
-                  }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  onChange={(e) => setFormData({ ...formData, numberOfOrders: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="0"
                   required
                 />
               </div>
-              
+
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Ticket Médio (R$)
                 </label>
                 <input
@@ -306,131 +226,158 @@ export default function SalesForm({
                   step="0.01"
                   min="0"
                   value={formData.averageTicket}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
-                  readOnly
+                  onChange={(e) => setFormData({ ...formData, averageTicket: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="0.00"
                 />
-                <p className="text-xs text-gray-500 mt-1">Calculado automaticamente</p>
+              </div>
+
+              <div className="md:col-span-2 lg:col-span-3">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Observações
+                </label>
+                <textarea
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Observações sobre a venda..."
+                />
               </div>
             </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Observações
-              </label>
-              <textarea
-                value={formData.notes}
-                onChange={(e) => setFormData({...formData, notes: e.target.value})}
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-                placeholder="Observações sobre o dia de vendas..."
-              />
-            </div>
-            
-            <div className="flex justify-end space-x-3 pt-4">
+
+            <div className="flex justify-end space-x-3 mt-6">
               <button
                 type="button"
-                onClick={cancelEdit}
-                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                onClick={() => setIsAdding(false)}
+                className="px-4 py-2 text-gray-600 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
-                {editingSale ? 'Atualizar' : 'Cadastrar'}
+                {editingId ? 'Atualizar' : 'Salvar'}
               </button>
             </div>
           </form>
-        </div>
-      )}
+        )}
 
-      {/* Lista de Vendas */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">Histórico de Vendas</h3>
-        </div>
-        
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Data
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Total de Vendas
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Número de Pedidos
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Ticket Médio
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Observações
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Ações
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {sales.map((sale) => (
-                <tr key={sale.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {formatDate(sale.date)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600">
-                    {formatCurrency(sale.totalSales)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {sale.numberOfOrders}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {formatCurrency(sale.averageTicket)}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500">
-                    {sale.notes ? (
-                      <span className="max-w-xs truncate block" title={sale.notes}>
-                        {sale.notes}
-                      </span>
-                    ) : (
-                      <span className="text-gray-400">-</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => handleEdit(sale)}
-                        className="text-orange-600 hover:text-orange-900"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(sale.id)}
-                        className="text-red-600 hover:text-red-900"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          
-          {sales.length === 0 && (
+        <div className="border-t border-gray-200 pt-6">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold text-gray-800">Histórico de Vendas</h3>
+            <span className="text-sm text-gray-600">
+              {currentMonthSales.length} venda{currentMonthSales.length !== 1 ? 's' : ''} este mês
+            </span>
+          </div>
+
+          {currentMonthSales.length === 0 ? (
             <div className="text-center py-12">
-              <TrendingUp className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900">Nenhuma venda registrada</h3>
-              <p className="mt-1 text-sm text-gray-500">
-                Comece registrando suas vendas diárias.
+              <p className="text-gray-500 text-lg">
+                Nenhuma venda registrada este mês. Clique em "Nova Venda" para começar.
               </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Data
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Total
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Pedidos
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Ticket Médio
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Observações
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Ações
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {currentMonthSales.map((sale) => (
+                    <tr key={sale.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {formatDate(sale.saleDate)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {formatCurrency(sale.totalSales)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {sale.numberOfOrders}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {formatCurrency(sale.averageTicket)}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
+                        {sale.notes || '-'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => handleEdit(sale)}
+                            className="text-blue-600 hover:text-blue-900 transition-colors"
+                          >
+                            Editar
+                          </button>
+                          <button
+                            onClick={() => handleDelete(sale.id)}
+                            className="text-red-600 hover:text-red-900 transition-colors"
+                          >
+                            Excluir
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
+
+        {currentMonthSales.length > 0 && (
+          <div className="mt-6 bg-blue-50 rounded-lg p-4">
+            <h4 className="text-lg font-semibold text-blue-800 mb-3">
+              Resumo do Mês ({new Date(selectedMonth + '-01').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })})
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="text-center">
+                <p className="text-2xl font-bold text-blue-600">
+                  {formatCurrency(currentMonthSales.reduce((sum, sale) => sum + sale.totalSales, 0))}
+                </p>
+                <p className="text-sm text-blue-700">Total do Mês</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-blue-600">
+                  {currentMonthSales.reduce((sum, sale) => sum + sale.numberOfOrders, 0)}
+                </p>
+                <p className="text-sm text-blue-700">Pedidos do Mês</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-blue-600">
+                  {formatCurrency(
+                    currentMonthSales.reduce((sum, sale) => sum + sale.totalSales, 0) /
+                    currentMonthSales.reduce((sum, sale) => sum + sale.numberOfOrders, 0)
+                  )}
+                </p>
+                <p className="text-sm text-blue-700">Ticket Médio do Mês</p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
-}
+};
+
+export default SalesForm;

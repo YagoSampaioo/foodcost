@@ -1,13 +1,16 @@
 import React from 'react';
-import { Calculator, Package, ChefHat, DollarSign, TrendingUp } from 'lucide-react';
+import { Calculator, Package, ChefHat, DollarSign, TrendingUp, LogOut, User } from 'lucide-react';
+import { AuthUser } from '../types';
 
 interface LayoutProps {
   children: React.ReactNode;
   currentPage: 'dashboard' | 'insumos' | 'produtos' | 'despesas' | 'vendas';
   onPageChange: (page: 'dashboard' | 'insumos' | 'produtos' | 'despesas' | 'vendas') => void;
+  currentUser: AuthUser;
+  onLogout: () => void;
 }
 
-export default function Layout({ children, currentPage, onPageChange }: LayoutProps) {
+export default function Layout({ children, currentPage, onPageChange, currentUser, onLogout }: LayoutProps) {
   const navigationItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Calculator },
     { id: 'insumos', label: 'Insumos', icon: Package },
@@ -54,6 +57,28 @@ export default function Layout({ children, currentPage, onPageChange }: LayoutPr
             })}
           </div>
         </nav>
+        
+        {/* User info e logout */}
+        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200 bg-white">
+          <div className="flex items-center space-x-3 mb-3">
+            <div className="flex-shrink-0">
+              <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
+                <User className="h-4 w-4 text-orange-600" />
+              </div>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-900 truncate">{currentUser.name}</p>
+              <p className="text-xs text-gray-500 truncate">{currentUser.companyName}</p>
+            </div>
+          </div>
+          <button
+            onClick={onLogout}
+            className="w-full flex items-center px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900 rounded-lg transition-colors"
+          >
+            <LogOut className="h-4 w-4 mr-2" />
+            Sair
+          </button>
+        </div>
       </div>
 
       {/* Main content */}

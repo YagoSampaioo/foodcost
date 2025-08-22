@@ -15,7 +15,8 @@ export default function Dashboard({ products, sales }: DashboardProps) {
     }).format(value);
   };
 
-  const formatDate = (date: Date) => {
+  const formatDate = (date: Date | undefined) => {
+    if (!date) return 'Data não disponível';
     return date.toLocaleDateString('pt-BR');
   };
 
@@ -36,7 +37,8 @@ export default function Dashboard({ products, sales }: DashboardProps) {
     const currentYear = new Date().getFullYear();
     
     return sales.filter(sale => {
-      const saleDate = new Date(sale.date);
+      if (!sale.saleDate) return false;
+      const saleDate = new Date(sale.saleDate);
       return saleDate.getMonth() === currentMonth && 
              saleDate.getFullYear() === currentYear;
     });
@@ -46,7 +48,8 @@ export default function Dashboard({ products, sales }: DashboardProps) {
     const currentYear = new Date().getFullYear();
     
     return sales.filter(sale => {
-      const saleDate = new Date(sale.date);
+      if (!sale.saleDate) return false;
+      const saleDate = new Date(sale.saleDate);
       return saleDate.getFullYear() === currentYear;
     });
   };
@@ -62,12 +65,22 @@ export default function Dashboard({ products, sales }: DashboardProps) {
 
   // Produtos recentes
   const recentProducts = products
-    .sort((a, b) => new Date(b.lastModified || b.createdAt).getTime() - new Date(a.lastModified || a.createdAt).getTime())
+    .filter(product => product.lastModified || product.createdAt)
+    .sort((a, b) => {
+      const dateA = new Date(b.lastModified || b.createdAt || 0).getTime();
+      const dateB = new Date(a.lastModified || a.createdAt || 0).getTime();
+      return dateA - dateB;
+    })
     .slice(0, 5);
 
   // Vendas recentes
   const recentSales = sales
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .filter(sale => sale.saleDate)
+    .sort((a, b) => {
+      const dateA = new Date(b.saleDate || 0).getTime();
+      const dateB = new Date(a.saleDate || 0).getTime();
+      return dateA - dateB;
+    })
     .slice(0, 5);
 
   return (
@@ -235,7 +248,7 @@ export default function Dashboard({ products, sales }: DashboardProps) {
                 {recentSales.map((sale) => (
                   <div key={sale.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div>
-                      <p className="text-sm font-medium text-gray-900">{formatDate(sale.date)}</p>
+                      <p className="text-sm font-medium text-gray-900">{formatDate(sale.saleDate)}</p>
                       <p className="text-xs text-gray-500">{sale.numberOfOrders} pedidos</p>
                     </div>
                     <span className="text-sm font-bold text-green-600">

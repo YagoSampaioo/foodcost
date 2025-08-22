@@ -37,24 +37,28 @@ export default function RawMaterialsForm({
 
   const units = ['kg', 'g', 'l', 'ml', 'un', 'cx', 'pct'];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (editingMaterial) {
-      onUpdateMaterial(editingMaterial.id, {
-        ...formData,
-        lastPurchaseDate: editingMaterial.lastPurchaseDate
-      });
-      setEditingMaterial(null);
-    } else {
-      onAddMaterial({
-        ...formData,
-        lastPurchaseDate: new Date()
-      });
+    try {
+      if (editingMaterial) {
+        await onUpdateMaterial(editingMaterial.id, {
+          ...formData,
+          // lastPurchaseDate field removed
+        });
+        setEditingMaterial(null);
+      } else {
+        await onAddMaterial({
+          ...formData
+        });
+      }
+      
+      resetForm();
+      setIsFormOpen(false);
+    } catch (error) {
+      console.error('Erro ao salvar insumo:', error);
+      // Aqui você pode adicionar uma notificação de erro para o usuário
     }
-    
-    resetForm();
-    setIsFormOpen(false);
   };
 
   const handleEdit = (material: RawMaterial) => {
@@ -72,9 +76,14 @@ export default function RawMaterialsForm({
     setIsFormOpen(true);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (window.confirm('Tem certeza que deseja excluir este insumo?')) {
-      onDeleteMaterial(id);
+      try {
+        await onDeleteMaterial(id);
+      } catch (error) {
+        console.error('Erro ao deletar insumo:', error);
+        // Aqui você pode adicionar uma notificação de erro para o usuário
+      }
     }
   };
 
@@ -216,7 +225,7 @@ export default function RawMaterialsForm({
                 >
                   <option value="">Selecione uma categoria</option>
                   <option value="create-new" className="font-semibold text-orange-600 border-t border-gray-200">
-                    ➕ Criar nova categoria
+                    Criar nova categoria
                   </option>
                   {categories.map(cat => (
                     <option key={cat} value={cat}>{cat}</option>
@@ -249,8 +258,11 @@ export default function RawMaterialsForm({
                   type="number"
                   step="0.01"
                   min="0"
-                  value={formData.unitPrice}
-                  onChange={(e) => setFormData({...formData, unitPrice: parseFloat(e.target.value) || 0})}
+                  value={formData.unitPrice === 0 ? '' : formData.unitPrice}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setFormData({...formData, unitPrice: value === '' ? 0 : parseFloat(value) || 0})
+                  }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                   required
                 />
@@ -276,8 +288,11 @@ export default function RawMaterialsForm({
                 <input
                   type="number"
                   min="0"
-                  value={formData.minimumStock}
-                  onChange={(e) => setFormData({...formData, minimumStock: parseFloat(e.target.value) || 0})}
+                  value={formData.minimumStock === 0 ? '' : formData.minimumStock}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setFormData({...formData, minimumStock: value === '' ? 0 : parseFloat(value) || 0})
+                  }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                   required
                 />
@@ -290,8 +305,11 @@ export default function RawMaterialsForm({
                 <input
                   type="number"
                   min="0"
-                  value={formData.currentStock}
-                  onChange={(e) => setFormData({...formData, currentStock: parseFloat(e.target.value) || 0})}
+                  value={formData.currentStock === 0 ? '' : formData.currentStock}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setFormData({...formData, currentStock: value === '' ? 0 : parseFloat(value) || 0})
+                  }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                   required
                 />
@@ -360,15 +378,15 @@ export default function RawMaterialsForm({
                     {material.category}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    R$ {material.unitPrice.toFixed(2)}
+                    R$ {(material.unitPrice || 0).toFixed(2)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      material.currentStock <= material.minimumStock 
+                      (material.currentStock || 0) <= (material.minimumStock || 0)
                         ? 'bg-red-100 text-red-800' 
                         : 'bg-green-100 text-green-800'
                     }`}>
-                      {material.currentStock} {material.measurementUnit}
+                      {material.currentStock || 0} {material.measurementUnit || ''}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">

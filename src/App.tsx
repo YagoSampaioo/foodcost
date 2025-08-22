@@ -1,20 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import Layout from './components/Layout';
 import Dashboard from './components/Dashboard';
 import RawMaterialsForm from './components/RawMaterialsForm';
 import ProductForm from './components/ProductForm';
 import ExpensesForm from './components/ExpensesForm';
 import SalesForm from './components/SalesForm';
-import { Product, RawMaterial, FixedExpense, VariableExpense, Sale } from './types';
-import { 
-  saveProducts, loadProducts, 
-  saveRawMaterials, loadRawMaterials,
-  saveFixedExpenses, loadFixedExpenses,
-  saveVariableExpenses, loadVariableExpenses,
-  saveSales, loadSales
-} from './utils/storage';
+import Auth from './components/Auth';
+import { Product, RawMaterial, FixedExpense, VariableExpense, Sale, AuthUser } from './types';
+import { authService } from './services/authService';
+import { supabaseService } from './services/supabaseService';
 
 function App() {
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+  const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState<'dashboard' | 'insumos' | 'produtos' | 'despesas' | 'vendas'>('dashboard');
   const [products, setProducts] = useState<Product[]>([]);
   const [rawMaterials, setRawMaterials] = useState<RawMaterial[]>([]);
@@ -22,128 +20,300 @@ function App() {
   const [variableExpenses, setVariableExpenses] = useState<VariableExpense[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
 
+  // Verificar se usuário está autenticado
   useEffect(() => {
-    setProducts(loadProducts());
-    setRawMaterials(loadRawMaterials());
-    setFixedExpenses(loadFixedExpenses());
-    setVariableExpenses(loadVariableExpenses());
-    setSales(loadSales());
+    const checkAuth = async () => {
+      try {
+        const user = await authService.getCurrentUser();
+        setCurrentUser(user);
+      } catch (error) {
+        console.error('Erro ao verificar autenticação:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    checkAuth();
   }, []);
 
-  useEffect(() => { saveProducts(products); }, [products]);
-  useEffect(() => { saveRawMaterials(rawMaterials); }, [rawMaterials]);
-  useEffect(() => { saveFixedExpenses(fixedExpenses); }, [fixedExpenses]);
-  useEffect(() => { saveVariableExpenses(variableExpenses); }, [variableExpenses]);
-  useEffect(() => { saveSales(sales); }, [sales]);
+  // Carregar dados do Supabase quando usuário estiver autenticado
+  useEffect(() => {
+    const loadDataFromSupabase = async () => {
+      if (currentUser) {
+        try {
+          // Limpar localStorage antigo para evitar conflitos
+          localStorage.removeItem('foodcost_products');
+          localStorage.removeItem('foodcost_raw_materials');
+          localStorage.removeItem('foodcost_fixed_expenses');
+          localStorage.removeItem('foodcost_variable_expenses');
+          localStorage.removeItem('foodcost_sales');
+          
+          const [
+            productsData,
+            rawMaterialsData,
+            fixedExpensesData,
+            variableExpensesData,
+            salesData
+          ] = await Promise.all([
+            supabaseService.getProducts(currentUser.id),
+            supabaseService.getRawMaterials(currentUser.id),
+            supabaseService.getFixedExpenses(currentUser.id),
+            supabaseService.getVariableExpenses(currentUser.id),
+            supabaseService.getSales(currentUser.id)
+          ]);
 
-  // Handlers para produtos (existing)
-  const handleAddProduct = (productData: Omit<Product, 'id' | 'createdAt'>) => {
-    const newProduct: Product = {
-      ...productData,
-      id: Date.now().toString(),
-      createdAt: new Date()
+          // Verificar se os dados estão corretos antes de definir
+          const validProducts = productsData.filter(product => 
+            product && typeof product === 'object'
+          );
+          const validRawMaterials = rawMaterialsData.filter(material => 
+            material && typeof material === 'object'
+          );
+          const validFixedExpenses = fixedExpensesData.filter(expense => 
+            expense && typeof expense === 'object'
+          );
+          const validVariableExpenses = variableExpensesData.filter(expense => 
+            expense && typeof expense === 'object'
+          );
+          const validSales = salesData.filter(sale => 
+            sale && typeof sale === 'object'
+          );
+
+          setProducts(validProducts);
+          setRawMaterials(validRawMaterials);
+          setFixedExpenses(validFixedExpenses);
+          setVariableExpenses(validVariableExpenses);
+          setSales(validSales);
+        } catch (error) {
+          console.error('Erro ao carregar dados do Supabase:', error);
+        }
+      }
     };
-    setProducts([...products, newProduct]);
+
+    loadDataFromSupabase();
+  }, [currentUser]);
+
+  // Handlers para produtos (Supabase)
+  const handleAddProduct = async (productData: Omit<Product, 'id' | 'createdAt' | 'lastModified'>) => {
+    if (!currentUser) return;
+    
+    try {
+      const newProduct = await supabaseService.createProduct({
+        ...productData,
+        clientId: currentUser.id
+      });
+      setProducts([newProduct, ...products]);
+    } catch (error) {
+      console.error('Erro ao criar produto:', error);
+      throw error;
+    }
   };
 
-  const handleUpdateProduct = (id: string, productData: Omit<Product, 'id' | 'createdAt'>) => {
+  const handleUpdateProduct = async (id: string, productData: Omit<Product, 'id' | 'createdAt'>) => {
+    try {
+      await supabaseService.updateProduct(id, productData);
     setProducts(products.map(product => 
       product.id === id 
-        ? { ...product, ...productData, lastModified: new Date() }
+          ? { ...product, ...productData, lastModified: new Date() }
         : product
     ));
+    } catch (error) {
+      console.error('Erro ao atualizar produto:', error);
+      throw error;
+    }
   };
 
-  const handleDeleteProduct = (id: string) => {
+  const handleDeleteProduct = async (id: string) => {
+    try {
+      await supabaseService.deleteProduct(id);
     setProducts(products.filter(product => product.id !== id));
+    } catch (error) {
+      console.error('Erro ao deletar produto:', error);
+      throw error;
+    }
   };
 
-  // Handlers para insumos (existing)
-  const handleAddMaterial = (materialData: Omit<RawMaterial, 'id' | 'createdAt'>) => {
-    const newMaterial: RawMaterial = {
-      ...materialData,
-      id: Date.now().toString(),
-      createdAt: new Date()
-    };
-    setRawMaterials([...rawMaterials, newMaterial]);
+  // Handlers para insumos (Supabase)
+  const handleAddMaterial = async (materialData: Omit<RawMaterial, 'id' | 'createdAt' | 'updatedAt'>) => {
+    if (!currentUser) return;
+    
+    try {
+      const newMaterial = await supabaseService.createRawMaterial({
+        ...materialData,
+        clientId: currentUser.id
+      });
+      setRawMaterials([newMaterial, ...rawMaterials]);
+    } catch (error) {
+      console.error('Erro ao criar insumo:', error);
+      throw error;
+    }
   };
 
-  const handleUpdateMaterial = (id: string, materialData: Omit<RawMaterial, 'id' | 'createdAt'>) => {
-    setRawMaterials(rawMaterials.map(material => 
-      material.id === id 
-        ? { ...material, ...materialData }
-        : material
-    ));
+  const handleUpdateMaterial = async (id: string, materialData: Partial<RawMaterial>) => {
+    try {
+      await supabaseService.updateRawMaterial(id, materialData);
+      setRawMaterials(rawMaterials.map(material => 
+        material.id === id 
+          ? { ...material, ...materialData }
+          : material
+      ));
+    } catch (error) {
+      console.error('Erro ao atualizar insumo:', error);
+      throw error;
+    }
   };
 
-  const handleDeleteMaterial = (id: string) => {
-    setRawMaterials(rawMaterials.filter(material => material.id !== id));
+  const handleDeleteMaterial = async (id: string) => {
+    try {
+      await supabaseService.deleteRawMaterial(id);
+      setRawMaterials(rawMaterials.filter(material => material.id !== id));
+    } catch (error) {
+      console.error('Erro ao deletar insumo:', error);
+      throw error;
+    }
   };
 
-  // Handlers para despesas fixas (existing)
-  const handleAddFixedExpense = (expenseData: Omit<FixedExpense, 'id' | 'createdAt'>) => {
-    const newExpense: FixedExpense = {
-      ...expenseData,
-      id: Date.now().toString(),
-      createdAt: new Date()
-    };
-    setFixedExpenses([...fixedExpenses, newExpense]);
+  // Handlers para despesas fixas (Supabase)
+  const handleAddFixedExpense = async (expenseData: Omit<FixedExpense, 'id' | 'createdAt' | 'updatedAt'>) => {
+    if (!currentUser) return;
+    
+    try {
+      const newExpense = await supabaseService.createFixedExpense({
+        ...expenseData,
+        clientId: currentUser.id
+      });
+      setFixedExpenses([newExpense, ...fixedExpenses]);
+    } catch (error) {
+      console.error('Erro ao criar despesa fixa:', error);
+      throw error;
+    }
   };
 
-  const handleUpdateFixedExpense = (id: string, expenseData: Omit<FixedExpense, 'id' | 'createdAt'>) => {
-    setFixedExpenses(fixedExpenses.map(expense => 
-      expense.id === id 
-        ? { ...expense, ...expenseData }
-        : expense
-    ));
+  const handleUpdateFixedExpense = async (id: string, expenseData: Partial<FixedExpense>) => {
+    try {
+      // Implementar updateFixedExpense no supabaseService
+      setFixedExpenses(fixedExpenses.map(expense => 
+        expense.id === id 
+          ? { ...expense, ...expenseData }
+          : expense
+      ));
+    } catch (error) {
+      console.error('Erro ao atualizar despesa fixa:', error);
+      throw error;
+    }
   };
 
-  const handleDeleteFixedExpense = (id: string) => {
-    setFixedExpenses(fixedExpenses.filter(expense => expense.id !== id));
+  const handleDeleteFixedExpense = async (id: string) => {
+    try {
+      // Implementar deleteFixedExpense no supabaseService
+      setFixedExpenses(fixedExpenses.filter(expense => expense.id !== id));
+    } catch (error) {
+      console.error('Erro ao deletar despesa fixa:', error);
+      throw error;
+    }
   };
 
-  // Handlers para despesas variáveis (existing)
-  const handleAddVariableExpense = (expenseData: Omit<VariableExpense, 'id' | 'createdAt'>) => {
-    const newExpense: VariableExpense = {
-      ...expenseData,
-      id: Date.now().toString(),
-      createdAt: new Date()
-    };
-    setVariableExpenses([...variableExpenses, newExpense]);
+  // Handlers para despesas variáveis (Supabase)
+  const handleAddVariableExpense = async (expenseData: Omit<VariableExpense, 'id' | 'createdAt'>) => {
+    if (!currentUser) return;
+    
+    try {
+      const newExpense = await supabaseService.createVariableExpense({
+        ...expenseData,
+        clientId: currentUser.id
+      });
+      setVariableExpenses([newExpense, ...variableExpenses]);
+    } catch (error) {
+      console.error('Erro ao criar despesa variável:', error);
+      throw error;
+    }
   };
 
-  const handleUpdateVariableExpense = (id: string, expenseData: Omit<VariableExpense, 'id' | 'createdAt'>) => {
-    setVariableExpenses(variableExpenses.map(expense => 
-      expense.id === id 
-        ? { ...expense, ...expenseData }
-        : expense
-    ));
+  const handleUpdateVariableExpense = async (id: string, expenseData: Partial<VariableExpense>) => {
+    try {
+      // Implementar updateVariableExpense no supabaseService
+      setVariableExpenses(variableExpenses.map(expense => 
+        expense.id === id 
+          ? { ...expense, ...expenseData }
+          : expense
+      ));
+    } catch (error) {
+      console.error('Erro ao atualizar despesa variável:', error);
+      throw error;
+    }
   };
 
-  const handleDeleteVariableExpense = (id: string) => {
-    setVariableExpenses(variableExpenses.filter(expense => expense.id !== id));
+  const handleDeleteVariableExpense = async (id: string) => {
+    try {
+      // Implementar deleteVariableExpense no supabaseService
+      setVariableExpenses(variableExpenses.filter(expense => expense.id !== id));
+    } catch (error) {
+      console.error('Erro ao deletar despesa variável:', error);
+      throw error;
+    }
   };
 
-  // Handlers para vendas (new)
-  const handleAddSale = (saleData: Omit<Sale, 'id' | 'createdAt'>) => {
-    const newSale: Sale = {
-      ...saleData,
-      id: Date.now().toString(),
-      createdAt: new Date()
-    };
-    setSales([...sales, newSale]);
+  // Handlers para vendas (Supabase)
+  const handleAddSale = async (saleData: Omit<Sale, 'id' | 'createdAt'>) => {
+    if (!currentUser) return;
+    
+    try {
+      const newSale = await supabaseService.createSale({
+        ...saleData,
+        clientId: currentUser.id
+      });
+      setSales([newSale, ...sales]);
+    } catch (error) {
+      console.error('Erro ao criar venda:', error);
+      throw error;
+    }
   };
 
-  const handleUpdateSale = (id: string, saleData: Omit<Sale, 'id' | 'createdAt'>) => {
-    setSales(sales.map(sale => 
-      sale.id === id 
-        ? { ...sale, ...saleData }
-        : sale
-    ));
+  const handleUpdateSale = async (id: string, saleData: Partial<Sale>) => {
+    try {
+      await supabaseService.updateSale(id, saleData);
+      setSales(sales.map(sale => 
+        sale.id === id 
+          ? { ...sale, ...saleData }
+          : sale
+      ));
+    } catch (error) {
+      console.error('Erro ao atualizar venda:', error);
+      throw error;
+    }
   };
 
-  const handleDeleteSale = (id: string) => {
-    setSales(sales.filter(sale => sale.id !== id));
+  const handleDeleteSale = async (id: string) => {
+    try {
+      await supabaseService.deleteSale(id);
+      setSales(sales.filter(sale => sale.id !== id));
+    } catch (error) {
+      console.error('Erro ao deletar venda:', error);
+      throw error;
+    }
+  };
+
+  // Handlers de autenticação
+  const handleLogin = async (email: string, password: string) => {
+    const user = await authService.login({ email, password });
+    setCurrentUser(user);
+  };
+
+  const handleRegister = async (data: { email: string; password: string; name: string; companyName: string; phone: string }) => {
+    const user = await authService.register(data);
+    setCurrentUser(user);
+  };
+
+  const handleLogout = () => {
+    authService.logout();
+    setCurrentUser(null);
+    // Limpar dados ao fazer logout
+    setProducts([]);
+    setRawMaterials([]);
+    setFixedExpenses([]);
+    setVariableExpenses([]);
+    setSales([]);
+    setCurrentPage('dashboard');
   };
 
   const renderCurrentPage = () => {
@@ -159,14 +329,14 @@ function App() {
         />;
       case 'produtos': 
         return <ProductForm 
-          products={products} 
+          products={products}
           rawMaterials={rawMaterials} 
           fixedExpenses={fixedExpenses}
           variableExpenses={variableExpenses}
           sales={sales}
-          onAddProduct={handleAddProduct} 
-          onUpdateProduct={handleUpdateProduct} 
-          onDeleteProduct={handleDeleteProduct} 
+          onAddProduct={handleAddProduct}
+          onUpdateProduct={handleUpdateProduct}
+          onDeleteProduct={handleDeleteProduct}
         />;
       case 'despesas': 
         return <ExpensesForm 
@@ -191,8 +361,44 @@ function App() {
     }
   };
 
+  // Loading inicial
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-orange-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="flex items-center justify-center mb-4">
+            <img 
+              src="https://toyegzbckmtrvnfxbign.supabase.co/storage/v1/object/public/branding/logo.png" 
+              alt="FoodCost Logo" 
+              className="h-12 w-12 mr-3"
+            />
+            <h1 className="text-3xl font-bold text-gray-900">FoodCost</h1>
+          </div>
+          <div className="w-8 h-8 border-4 border-orange-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-gray-600 mt-4">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Se não estiver autenticado, mostrar tela de login
+  if (!currentUser) {
+    return (
+      <Auth 
+        onLogin={handleLogin}
+        onRegister={handleRegister}
+      />
+    );
+  }
+
+  // Se estiver autenticado, mostrar aplicação principal
   return (
-    <Layout currentPage={currentPage} onPageChange={setCurrentPage}>
+    <Layout 
+      currentPage={currentPage} 
+      onPageChange={setCurrentPage}
+      currentUser={currentUser}
+      onLogout={handleLogout}
+    >
       {renderCurrentPage()}
     </Layout>
   );

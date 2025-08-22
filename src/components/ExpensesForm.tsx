@@ -143,7 +143,7 @@ export default function ExpensesForm({
         frequency: 'mensal',
         dueDate: 1,
         isActive: true,
-        date: expense.date,
+        expenseDate: expense.expenseDate,
         paymentMethod: expense.paymentMethod,
         receipt: expense.receipt || ''
       });
@@ -228,7 +228,7 @@ export default function ExpensesForm({
     const currentYear = new Date().getFullYear();
     
     return variableExpenses.filter(expense => {
-      const expenseDate = new Date(expense.date);
+      const expenseDate = new Date(expense.expenseDate);
       return expenseDate.getMonth() === currentMonth && 
              expenseDate.getFullYear() === currentYear;
     });
@@ -238,7 +238,7 @@ export default function ExpensesForm({
     const currentYear = new Date().getFullYear();
     
     return variableExpenses.filter(expense => {
-      const expenseDate = new Date(expense.date);
+      const expenseDate = new Date(expense.expenseDate);
       return expenseDate.getFullYear() === currentYear;
     });
   };
@@ -541,7 +541,7 @@ export default function ExpensesForm({
                           R$ {expense.amount.toFixed(2)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {formatDate(expense.date)}
+                          {formatDate(expense.expenseDate)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {expense.paymentMethod}
@@ -625,7 +625,7 @@ export default function ExpensesForm({
                 >
                   <option value="">Selecione uma categoria</option>
                   <option value="create-new" className="font-semibold text-orange-600 border-t border-gray-200">
-                    ➕ Criar nova categoria
+                    Criar nova categoria
                   </option>
                   {categories.map(cat => (
                     <option key={cat} value={cat}>{cat}</option>
@@ -641,8 +641,11 @@ export default function ExpensesForm({
                   type="number"
                   step="0.01"
                   min="0"
-                  value={formData.amount}
-                  onChange={(e) => setFormData({...formData, amount: parseFloat(e.target.value) || 0})}
+                  value={formData.amount === 0 ? '' : formData.amount}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setFormData({...formData, amount: value === '' ? 0 : parseFloat(value) || 0})
+                  }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                   required
                 />
@@ -674,8 +677,11 @@ export default function ExpensesForm({
                       type="number"
                       min="1"
                       max="31"
-                      value={formData.dueDate}
-                      onChange={(e) => setFormData({...formData, dueDate: parseInt(e.target.value) || 1})}
+                      value={formData.dueDate === 1 ? '' : formData.dueDate}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setFormData({...formData, dueDate: value === '' ? 1 : parseInt(value) || 1})
+                      }}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                       required
                     />
@@ -776,3 +782,4 @@ export default function ExpensesForm({
     </div>
   );
 }
+
