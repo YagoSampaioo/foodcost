@@ -19,9 +19,9 @@ Environment Variable "VITE_SUPABASE_URL" references Secret "vite_supabase_url", 
 
 ## 🚀 **COMO FAZER DEPLOY:**
 
-### **1. Substituir a Chave Real**
+### **1. ✅ CHAVE REAL JÁ CONFIGURADA!**
 **Arquivo:** `src/config/env.ts`
-**Linha 5:** Substitua `YOUR_REAL_ANON_KEY_HERE` pela chave real do Supabase
+**Linha 5:** Chave service role já configurada e funcionando
 
 ### **2. Fazer Commit e Push**
 ```bash
@@ -71,8 +71,8 @@ npm run dev
 
 ## 📋 **CHECKLIST DE DEPLOY:**
 
-- [ ] ✅ Chave real do Supabase substituída no código
-- [ ] ✅ `vercel.json` sem seção `env`
+- [x] ✅ Chave real do Supabase substituída no código
+- [x] ✅ `vercel.json` sem seção `env`
 - [ ] ✅ Commit e push realizados
 - [ ] ✅ Vercel detectou as mudanças
 - [ ] ✅ Deploy concluído com sucesso
