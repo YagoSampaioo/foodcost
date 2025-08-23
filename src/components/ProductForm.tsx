@@ -300,8 +300,11 @@ export default function ProductForm({
       return recipeCost * (1 + (formData.marginPercentage / 100));
     }
     
-    // Fórmula: Preço Sugerido = (Custo dos Insumos + %Despesas) + Margem
+    // NOVA FÓRMULA: Preço Sugerido = (Custo dos Insumos + %Despesas) + Margem de Lucro
+    // 1. Calcular custo total (insumos + despesas)
     const basePrice = recipeCost / (1 - totalExpensePercentage);
+    
+    // 2. Adicionar margem de lucro sobre o custo total
     const priceWithMargin = basePrice * (1 + (formData.marginPercentage / 100));
     
     return Math.round(priceWithMargin * 100) / 100;
@@ -666,23 +669,39 @@ export default function ProductForm({
               />
             </div>
 
-            <div>
+                        <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Preço Sugerido (R$)
+                    Preço Sugerido (R$) <span className="text-orange-600">*Calculado Automaticamente</span>
               </label>
-              <input
-                type="number"
-                    value={suggestedPrice}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
-                    readOnly
-                  />
-                  <p className="text-xs text-gray-500 mt-1">Para ficar no 0 a 0 com custos + margem</p>
+              <div className="relative">
+                <input
+                  type="number"
+                  value={suggestedPrice}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-700 cursor-not-allowed"
+                  readOnly
+                  disabled
+                />
+                <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                  <span className="text-gray-400 text-sm">🔒</span>
                 </div>
+              </div>
+              <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-xs text-blue-800 font-medium mb-1">📊 Como é calculado:</p>
+                <div className="text-xs text-blue-700 space-y-1">
+                  <div>• <strong>Custo dos Insumos:</strong> R$ {recipeCost.toFixed(2)}</div>
+                  <div>• <strong>% Despesas:</strong> {expenseData.totalExpensesPercentage.toFixed(1)}%</div>
+                  <div>• <strong>Margem de Lucro:</strong> {formData.marginPercentage}%</div>
+                  <div className="mt-2 pt-2 border-t border-blue-200">
+                    <strong>Fórmula:</strong> (Custos + Despesas) × (1 + {formData.marginPercentage}%)
+                  </div>
+                </div>
+              </div>
+            </div>
             </div>
 
             <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Porcentagem de Margem (%)
+                  Porcentagem de Margem de Lucro (%)
               </label>
               <input
                 type="number"
@@ -694,7 +713,14 @@ export default function ProductForm({
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                   placeholder="30"
                 />
-                <p className="text-xs text-gray-500 mt-1">Recomendação: 28% a 32% da margem dos custos</p>
+                <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <p className="text-xs text-green-800 font-medium mb-1">💡 Margem de Lucro:</p>
+                  <p className="text-xs text-green-700">
+                    Esta porcentagem será <strong>adicionada</strong> ao custo total (insumos + despesas) 
+                    para calcular o preço sugerido. Exemplo: se custos + despesas = R$ 10,00 e margem = 30%, 
+                    o preço sugerido será R$ 13,00.
+                  </p>
+                </div>
             </div>
 
               {/* Resumo financeiro do produto */}
@@ -744,17 +770,21 @@ export default function ProductForm({
 
               {/* Recomendação de Margem */}
               <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <h5 className="text-sm font-medium text-yellow-800 mb-2">💡 Recomendação de Margem</h5>
+                <h5 className="text-sm font-medium text-yellow-800 mb-2">💡 Recomendação de Margem de Lucro</h5>
                 <p className="text-sm text-yellow-700">
-                  Para produtos de alimentação, a <strong>margem recomendada é entre 28% a 32%</strong> dos custos totais. 
+                  Para produtos de alimentação, a <strong>margem de lucro recomendada é entre 25% a 35%</strong> sobre o custo total. 
                   Esta margem garante uma rentabilidade saudável considerando:
                 </p>
                 <ul className="text-xs text-yellow-600 mt-2 space-y-1">
-                  <li>• Custos operacionais e administrativos</li>
-                  <li>• Impostos e taxas</li>
-                  <li>• Margem de lucro sustentável</li>
-                  <li>• Competitividade no mercado</li>
+                  <li>• <strong>25%:</strong> Margem mínima para cobrir custos operacionais</li>
+                  <li>• <strong>30%:</strong> Margem ideal para lucro sustentável</li>
+                  <li>• <strong>35%:</strong> Margem alta para produtos premium</li>
+                  <li>• <strong>40%+:</strong> Apenas para produtos exclusivos</li>
                 </ul>
+                <div className="mt-3 p-2 bg-yellow-100 rounded text-xs text-yellow-800">
+                  <strong>📊 Exemplo prático:</strong> Se custos + despesas = R$ 10,00 e margem = 30%, 
+                  o preço sugerido será R$ 13,00 (R$ 10,00 + 30% = R$ 13,00).
+                </div>
               </div>
 
               <div className="flex justify-end space-x-3 pt-4">
