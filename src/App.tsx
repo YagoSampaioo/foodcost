@@ -6,7 +6,7 @@ import ProductForm from './components/ProductForm';
 import ExpensesForm from './components/ExpensesForm';
 import SalesForm from './components/SalesForm';
 import Auth from './components/Auth';
-import { Product, RawMaterial, FixedExpense, VariableExpense, Sale, AuthUser } from './types';
+import { Product, RawMaterial, FixedExpense, VariableExpense, Sale, AuthUser, RawMaterialPurchase } from './types';
 import { authService } from './services/authService';
 import { supabaseService } from './services/supabaseService';
 
@@ -18,6 +18,7 @@ function App() {
   const [rawMaterials, setRawMaterials] = useState<RawMaterial[]>([]);
   const [fixedExpenses, setFixedExpenses] = useState<FixedExpense[]>([]);
   const [variableExpenses, setVariableExpenses] = useState<VariableExpense[]>([]);
+  const [rawMaterialPurchases, setRawMaterialPurchases] = useState<RawMaterialPurchase[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
 
   // Verificar se usuário está autenticado
@@ -53,12 +54,14 @@ function App() {
             rawMaterialsData,
             fixedExpensesData,
             variableExpensesData,
+            rawMaterialPurchasesData,
             salesData
           ] = await Promise.all([
             supabaseService.getProducts(currentUser.id),
             supabaseService.getRawMaterials(currentUser.id),
             supabaseService.getFixedExpenses(currentUser.id),
             supabaseService.getVariableExpenses(currentUser.id),
+            supabaseService.getRawMaterialPurchases(currentUser.id),
             supabaseService.getSales(currentUser.id)
           ]);
 
@@ -75,6 +78,9 @@ function App() {
           const validVariableExpenses = variableExpensesData.filter(expense => 
             expense && typeof expense === 'object'
           );
+          const validRawMaterialPurchases = rawMaterialPurchasesData.filter(purchase => 
+            purchase && typeof purchase === 'object'
+          );
           const validSales = salesData.filter(sale => 
             sale && typeof sale === 'object'
           );
@@ -83,6 +89,7 @@ function App() {
           setRawMaterials(validRawMaterials);
           setFixedExpenses(validFixedExpenses);
           setVariableExpenses(validVariableExpenses);
+          setRawMaterialPurchases(validRawMaterialPurchases);
           setSales(validSales);
         } catch (error) {
           console.error('Erro ao carregar dados do Supabase:', error);
@@ -137,11 +144,15 @@ function App() {
   const handleAddMaterial = async (materialData: Omit<RawMaterial, 'id' | 'createdAt' | 'updatedAt'>) => {
     if (!currentUser) return;
     
+    console.log('handleAddMaterial chamado com:', materialData);
+    console.log('currentUser.id:', currentUser.id);
+    
     try {
       const newMaterial = await supabaseService.createRawMaterial({
         ...materialData,
         clientId: currentUser.id
       });
+      console.log('Insumo criado com sucesso:', newMaterial);
       setRawMaterials([newMaterial, ...rawMaterials]);
     } catch (error) {
       console.error('Erro ao criar insumo:', error);
@@ -253,6 +264,46 @@ function App() {
     }
   };
 
+  // Handlers para compras de insumos (Supabase)
+  const handleAddRawMaterialPurchase = async (purchaseData: Omit<RawMaterialPurchase, 'id' | 'createdAt'>) => {
+    if (!currentUser) return;
+    
+    try {
+      const newPurchase = await supabaseService.createRawMaterialPurchase({
+        ...purchaseData,
+        clientId: currentUser.id
+      });
+      setRawMaterialPurchases([newPurchase, ...rawMaterialPurchases]);
+    } catch (error) {
+      console.error('Erro ao criar compra de insumo:', error);
+      throw error;
+    }
+  };
+
+  const handleUpdateRawMaterialPurchase = async (id: string, purchaseData: Partial<RawMaterialPurchase>) => {
+    try {
+      await supabaseService.updateRawMaterialPurchase(id, purchaseData);
+      setRawMaterialPurchases(rawMaterialPurchases.map(purchase => 
+        purchase.id === id 
+          ? { ...purchase, ...purchaseData }
+          : purchase
+      ));
+    } catch (error) {
+      console.error('Erro ao atualizar compra de insumo:', error);
+      throw error;
+    }
+  };
+
+  const handleDeleteRawMaterialPurchase = async (id: string) => {
+    try {
+      await supabaseService.deleteRawMaterialPurchase(id);
+      setRawMaterialPurchases(rawMaterialPurchases.filter(purchase => purchase.id !== id));
+    } catch (error) {
+      console.error('Erro ao deletar compra de insumo:', error);
+      throw error;
+    }
+  };
+
   // Handlers para vendas (Supabase)
   const handleAddSale = async (saleData: Omit<Sale, 'id' | 'createdAt'>) => {
     if (!currentUser) return;
@@ -312,6 +363,7 @@ function App() {
     setRawMaterials([]);
     setFixedExpenses([]);
     setVariableExpenses([]);
+    setRawMaterialPurchases([]);
     setSales([]);
     setCurrentPage('dashboard');
   };
@@ -322,10 +374,8 @@ function App() {
         return <Dashboard products={products} sales={sales} />;
       case 'insumos': 
         return <RawMaterialsForm 
-          materials={rawMaterials} 
-          onAddMaterial={handleAddMaterial} 
-          onUpdateMaterial={handleUpdateMaterial} 
-          onDeleteMaterial={handleDeleteMaterial} 
+          rawMaterials={rawMaterials}
+          purchases={rawMaterialPurchases}
         />;
       case 'produtos': 
         return <ProductForm 
@@ -342,12 +392,18 @@ function App() {
         return <ExpensesForm 
           fixedExpenses={fixedExpenses}
           variableExpenses={variableExpenses}
+          rawMaterialPurchases={rawMaterialPurchases}
+          rawMaterials={rawMaterials}
           onAddFixedExpense={handleAddFixedExpense}
           onUpdateFixedExpense={handleUpdateFixedExpense}
           onDeleteFixedExpense={handleDeleteFixedExpense}
           onAddVariableExpense={handleAddVariableExpense}
           onUpdateVariableExpense={handleUpdateVariableExpense}
           onDeleteVariableExpense={handleDeleteVariableExpense}
+          onAddRawMaterialPurchase={handleAddRawMaterialPurchase}
+          onUpdateRawMaterialPurchase={handleUpdateRawMaterialPurchase}
+          onDeleteRawMaterialPurchase={handleDeleteRawMaterialPurchase}
+          onAddRawMaterial={handleAddMaterial}
         />;
       case 'vendas': 
         return <SalesForm 

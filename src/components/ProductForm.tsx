@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, ChefHat } from 'lucide-react';
 import { Product, RawMaterial, FixedExpense, VariableExpense, Sale } from '../types';
 
@@ -25,8 +25,7 @@ export default function ProductForm({
 }: ProductFormProps) {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
-  const [newCategory, setNewCategory] = useState('');
+
   const [isIngredientsModalOpen, setIsIngredientsModalOpen] = useState(false);
   const [newIngredient, setNewIngredient] = useState({
     rawMaterialId: '',
@@ -51,21 +50,54 @@ export default function ProductForm({
 
   // Removido: newIngredient não é mais necessário
 
-  const [categories, setCategories] = useState([
-    'Pratos Principais', 'Acompanhamentos', 'Sobremesas', 'Bebidas', 'Entradas', 'Saladas', 'Sopas', 'Outros'
-  ]);
+
+
+  // Estado para seleção de mês (igual ao da página de vendas)
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    // Se há vendas, usar a data da venda mais recente
+    if (sales.length > 0) {
+      const mostRecentSale = sales[0]; // sales já vem ordenado por data desc
+      const saleDate = new Date(mostRecentSale.saleDate);
+      return `${saleDate.getFullYear()}-${String(saleDate.getMonth() + 1).padStart(2, '0')}`;
+    }
+    
+    // Senão, usar mês atual
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  });
+
+  // Atualizar o mês selecionado quando as vendas carregarem
+  useEffect(() => {
+    if (sales.length > 0) {
+      const mostRecentSale = sales[0]; // sales já vem ordenado por data desc
+      const saleDate = new Date(mostRecentSale.saleDate);
+      const recentMonth = `${saleDate.getFullYear()}-${String(saleDate.getMonth() + 1).padStart(2, '0')}`;
+      
+      // Só atualizar se o mês atual não tem vendas
+      const currentMonthHasSales = sales.some(sale => {
+        const currentSaleDate = new Date(sale.saleDate);
+        const currentMonth = new Date();
+        return currentSaleDate.getMonth() === currentMonth.getMonth() && 
+               currentSaleDate.getFullYear() === currentMonth.getFullYear();
+      });
+      
+      if (!currentMonthHasSales) {
+        setSelectedMonth(recentMonth);
+      }
+    }
+  }, [sales]);
 
   // Cálculo automático das despesas baseado no faturamento mensal
   const calculateExpensePercentages = () => {
-    const currentMonth = new Date().getMonth();
-    const currentYear = new Date().getFullYear();
+    const [year, month] = selectedMonth.split('-').map(Number);
+    const targetMonth = month - 1; // getMonth() retorna 0-11
     
-    // Faturamento do mês atual baseado nas vendas registradas
+    // Faturamento do mês selecionado baseado nas vendas registradas
     const monthlyRevenue = sales.filter(sale => {
       if (!sale.saleDate) return false;
       const saleDate = new Date(sale.saleDate);
-      return saleDate.getMonth() === currentMonth && 
-             saleDate.getFullYear() === currentYear;
+      return saleDate.getMonth() === targetMonth && 
+             saleDate.getFullYear() === year;
     }).reduce((sum, sale) => sum + (sale.totalSales || 0), 0);
     
     // Despesas fixas mensais (convertendo para mensal se necessário)
@@ -81,12 +113,12 @@ export default function ProductForm({
         }
       }, 0);
     
-    // Despesas variáveis do mês atual
+    // Despesas variáveis do mês selecionado
     const monthlyVariableExpenses = variableExpenses.filter(expense => {
       if (!expense.expenseDate) return false;
       const expenseDate = new Date(expense.expenseDate);
-      return expenseDate.getMonth() === currentMonth && 
-             expenseDate.getFullYear() === currentYear;
+      return expenseDate.getMonth() === targetMonth && 
+             expenseDate.getFullYear() === year;
     }).reduce((sum, expense) => sum + expense.amount, 0);
     
     // Total de despesas mensais
@@ -193,22 +225,15 @@ export default function ProductForm({
 
   // Removido: funções de ingredientes não são mais necessárias
 
-  const handleCategorySelect = (category: string) => {
-    if (category === 'create-new') {
-      setIsCategoryModalOpen(true);
+  const handleProductNameSelect = (productName: string) => {
+    if (productName === 'create-new') {
+      setFormData({...formData, name: 'create-new'});
     } else {
-      setFormData({...formData, category});
+      setFormData({...formData, name: productName});
     }
   };
 
-  const handleAddCategory = () => {
-    if (newCategory.trim() && !categories.includes(newCategory.trim())) {
-      setCategories([...categories, newCategory.trim()]);
-      setFormData({...formData, category: newCategory.trim()});
-      setNewCategory('');
-      setIsCategoryModalOpen(false);
-    }
-  };
+
 
   const handleAddIngredient = () => {
     if (newIngredient.rawMaterialId && newIngredient.quantity > 0) {
@@ -314,48 +339,7 @@ export default function ProductForm({
         </button>
       </div>
 
-      {/* Modal para criar categoria */}
-      {isCategoryModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Criar Nova Categoria</h3>
-            <div className="space-y-4">
-          <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Nome da Categoria
-            </label>
-            <input
-              type="text"
-                  value={newCategory}
-                  onChange={(e) => setNewCategory(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  placeholder="Digite o nome da categoria"
-                  autoFocus
-                />
-              </div>
-              <div className="flex justify-end space-x-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsCategoryModalOpen(false);
-                    setNewCategory('');
-                  }}
-                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="button"
-                  onClick={handleAddCategory}
-                  className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
-                >
-                  Criar
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+
 
       {/* Modal para adicionar ingredientes */}
       {isIngredientsModalOpen && (
@@ -445,9 +429,20 @@ export default function ProductForm({
 
       {/* Resumo das despesas mensais */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-blue-900 mb-4">
-          Resumo Financeiro do Mês ({new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })})
-        </h3>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold text-blue-900">
+            Resumo Financeiro do Mês ({new Date(selectedMonth + '-01').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })})
+          </h3>
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-blue-700 font-medium">Selecionar mês:</label>
+            <input
+              type="month"
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              className="px-2 py-1 text-xs border border-blue-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+          </div>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
           <div className="bg-white p-3 rounded-lg">
             <span className="text-blue-600 font-medium">Faturamento Mensal:</span>
@@ -489,12 +484,12 @@ export default function ProductForm({
         <div className="mt-4 p-3 bg-white rounded-lg">
           <p className="text-xs text-blue-700">
             <strong>Como funciona:</strong> O faturamento é captado da página <strong>Vendas</strong> 
-            (campo "Total de Vendas" de cada dia do mês). As despesas são calculadas automaticamente 
-            baseadas neste faturamento real.
+            (campo "Total de Vendas" de cada dia do mês selecionado). As despesas são calculadas automaticamente 
+            baseadas neste faturamento real. Use o seletor acima para analisar diferentes meses.
           </p>
           {expenseData.monthlyRevenue === 0 && (
             <p className="text-xs text-orange-600 mt-2">
-              <strong>Atenção:</strong> Nenhuma venda foi registrada este mês. 
+              <strong>Atenção:</strong> Nenhuma venda foi registrada no mês selecionado. 
               Usando estimativa baseada nas despesas para calcular porcentagens.
             </p>
           )}
@@ -536,24 +531,33 @@ export default function ProductForm({
             />
           </div>
 
-          <div>
+                        <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Categoria
+                  Nome do Produto
                 </label>
                 <select
-                  value={formData.category}
-                  onChange={(e) => handleCategorySelect(e.target.value)}
+                  value={formData.name}
+                  onChange={(e) => handleProductNameSelect(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                   required
                 >
-                  <option value="">Selecione uma categoria</option>
+                  <option value="">Selecione um produto existente ou digite um novo</option>
                   <option value="create-new" className="font-semibold text-orange-600 border-t border-gray-200">
-                    Criar nova categoria
+                    Criar novo produto
                   </option>
-                  {categories.map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
+                  {products.map(product => (
+                    <option key={product.id} value={product.name}>{product.name}</option>
                   ))}
                 </select>
+                {formData.name === 'create-new' && (
+                  <input
+                    type="text"
+                    placeholder="Digite o nome do novo produto"
+                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    className="w-full mt-2 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    required
+                  />
+                )}
               </div>
               
               <div>
@@ -695,7 +699,12 @@ export default function ProductForm({
 
               {/* Resumo financeiro do produto */}
               <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-                <h5 className="text-sm font-medium text-blue-900 mb-3">Análise Financeira do Produto</h5>
+                <div className="flex justify-between items-center mb-3">
+                  <h5 className="text-sm font-medium text-blue-900">Análise Financeira do Produto</h5>
+                  <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded">
+                    Mês: {new Date(selectedMonth + '-01').toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' })}
+                  </span>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
                   <div>
                     <span className="text-gray-600">Custo dos Insumos:</span>
@@ -723,9 +732,13 @@ export default function ProductForm({
                       {formData.sellingPrice > 0 ? ((profit / formData.sellingPrice) * 100).toFixed(1) : '0'}%
                     </span>
             </div>
-                  <div className="mt-2 text-xs text-gray-500">
-                    Baseado no faturamento mensal de R$ {expenseData.monthlyRevenue.toFixed(2)} (da página Vendas) e despesas totais de {expenseData.totalExpensesPercentage.toFixed(1)}%
-          </div>
+                                    <div className="mt-2 text-xs text-gray-500">
+                    Baseado no faturamento de {new Date(selectedMonth + '-01').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}: R$ {expenseData.monthlyRevenue.toFixed(2)} (da página Vendas) e despesas totais de {expenseData.totalExpensesPercentage.toFixed(1)}%
+                  </div>
+        </div>
+        <div className="mt-3 p-2 bg-blue-100 rounded text-xs text-blue-700">
+          <strong>ℹ️ Nota:</strong> Esta análise é baseada nos dados de vendas e despesas de {new Date(selectedMonth + '-01').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}. 
+          Use o seletor de mês no resumo financeiro acima para analisar diferentes períodos.
         </div>
       </div>
 

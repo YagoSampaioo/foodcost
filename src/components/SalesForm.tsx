@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Sale } from '../types';
 
 interface SalesFormProps {
@@ -14,43 +14,45 @@ const SalesForm: React.FC<SalesFormProps> = ({
   onUpdateSale,
   onDeleteSale
 }) => {
-  // Filtrar vendas do mês selecionado (padrão: mês atual)
+  // Filtrar vendas do mês selecionado (padrão: mês com vendas mais recentes)
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   });
 
+  // Atualizar o mês selecionado quando as vendas carregarem
+  useEffect(() => {
+    if (sales.length > 0) {
+      const mostRecentSale = sales[0]; // sales já vem ordenado por data desc
+      const saleDate = new Date(mostRecentSale.saleDate);
+      const recentMonth = `${saleDate.getFullYear()}-${String(saleDate.getMonth() + 1).padStart(2, '0')}`;
+      
+      // Só atualizar se o mês atual não tem vendas
+      const currentMonthHasSales = sales.some(sale => {
+        const currentSaleDate = new Date(sale.saleDate);
+        const currentMonth = new Date();
+        return currentSaleDate.getMonth() === currentMonth.getMonth() && 
+               currentSaleDate.getFullYear() === currentMonth.getFullYear();
+      });
+      
+      if (!currentMonthHasSales) {
+        setSelectedMonth(recentMonth);
+      }
+    }
+  }, [sales]);
+
   const getCurrentMonthSales = () => {
     const [year, month] = selectedMonth.split('-').map(Number);
     
-    console.log('Filtrando vendas para:', { year, month, selectedMonth });
-    console.log('Total de vendas disponíveis:', sales.length);
-    
-    const filteredSales = sales.filter(sale => {
-      if (!sale.saleDate) {
-        console.log('Venda sem data:', sale);
-        return false;
-      }
+    return sales.filter(sale => {
+      if (!sale.saleDate) return false;
       
       const saleDate = new Date(sale.saleDate);
       const saleMonth = saleDate.getMonth();
       const saleYear = saleDate.getFullYear();
       
-      console.log('Verificando venda:', {
-        saleDate: sale.saleDate,
-        parsedDate: saleDate,
-        saleMonth,
-        saleYear,
-        targetMonth: month - 1,
-        targetYear: year,
-        matches: saleMonth === month - 1 && saleYear === year
-      });
-      
       return saleMonth === month - 1 && saleYear === year;
     });
-    
-    console.log('Vendas filtradas:', filteredSales);
-    return filteredSales;
   };
 
   const currentMonthSales = getCurrentMonthSales();
@@ -130,10 +132,7 @@ const SalesForm: React.FC<SalesFormProps> = ({
     return new Intl.DateTimeFormat('pt-BR').format(date);
   };
 
-  // Debug: mostrar informações sobre as vendas
-  console.log('Todas as vendas:', sales);
-  console.log('Mês selecionado:', selectedMonth);
-  console.log('Vendas filtradas:', currentMonthSales);
+
 
   return (
     <div className="max-w-6xl mx-auto p-6">

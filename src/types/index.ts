@@ -82,6 +82,22 @@ export interface VariableExpense {
   createdAt: Date;
 }
 
+// Novo tipo para compras de insumos
+export interface RawMaterialPurchase {
+  id: string;
+  clientId: string;
+  rawMaterialId: string;
+  quantity: number;
+  unitPrice: number;
+  totalCost: number;
+  purchaseDate: Date;
+  supplier: string;
+  paymentMethod: string;
+  receipt?: string;
+  notes?: string;
+  createdAt: Date;
+}
+
 export interface Sale {
   id: string;
   clientId: string;

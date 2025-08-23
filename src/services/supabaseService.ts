@@ -1,5 +1,5 @@
 import { supabase } from './authService';
-import { RawMaterial, Product, FixedExpense, VariableExpense, Sale } from '../types';
+import { RawMaterial, Product, FixedExpense, VariableExpense, Sale, RawMaterialPurchase } from '../types';
 
 export class SupabaseService {
   // =============================================
@@ -35,28 +35,37 @@ export class SupabaseService {
   }
 
   async createRawMaterial(material: Omit<RawMaterial, 'id' | 'createdAt' | 'updatedAt'>): Promise<RawMaterial> {
+    console.log('createRawMaterial chamado com:', material);
+    
+    const insertData = {
+      client_id: material.clientId,
+      code: material.code,
+      name: material.name,
+      category: material.category,
+      measurement_unit: material.measurementUnit,
+      unit_price: material.unitPrice,
+      supplier: material.supplier,
+      minimum_stock: material.minimumStock,
+      current_stock: material.currentStock
+    };
+    
+    console.log('Dados para inserção:', insertData);
+    
     const { data, error } = await supabase
       .from('raw_materials')
-      .insert([{
-        client_id: material.clientId,
-        code: material.code,
-        name: material.name,
-        category: material.category,
-        measurement_unit: material.measurementUnit,
-        unit_price: material.unitPrice,
-        supplier: material.supplier,
-        minimum_stock: material.minimumStock,
-        current_stock: material.currentStock
-      }])
+      .insert([insertData])
       .select()
       .single();
 
     if (error) {
       console.error('Erro ao criar insumo:', error);
+      console.error('Detalhes do erro:', error.message, error.details, error.hint);
       throw new Error('Erro ao criar insumo');
     }
 
-    return {
+    console.log('Insumo criado com sucesso no banco:', data);
+
+    const result = {
       id: data.id,
       clientId: data.client_id,
       code: data.code,
@@ -70,6 +79,9 @@ export class SupabaseService {
       createdAt: new Date(data.created_at),
       updatedAt: new Date(data.updated_at)
     };
+
+    console.log('Insumo retornado:', result);
+    return result;
   }
 
   async updateRawMaterial(id: string, material: Partial<RawMaterial>): Promise<void> {
@@ -493,6 +505,113 @@ export class SupabaseService {
     if (error) {
       console.error('Erro ao deletar venda:', error);
       throw new Error('Erro ao deletar venda');
+    }
+  }
+
+  // =============================================
+  // COMPRAS DE INSUMOS (RAW MATERIAL PURCHASES)
+  // =============================================
+  
+  async getRawMaterialPurchases(clientId: string): Promise<RawMaterialPurchase[]> {
+    const { data, error } = await supabase
+      .from('raw_material_purchases')
+      .select('*')
+      .eq('client_id', clientId)
+      .order('purchase_date', { ascending: false });
+
+    if (error) {
+      console.error('Erro ao buscar compras de insumos:', error);
+      throw new Error('Erro ao carregar compras de insumos');
+    }
+
+    return data?.map(item => ({
+      id: item.id,
+      clientId: item.client_id,
+      rawMaterialId: item.raw_material_id,
+      quantity: item.quantity,
+      unitPrice: item.unit_price,
+      totalCost: item.total_cost,
+      purchaseDate: new Date(item.purchase_date),
+      supplier: item.supplier,
+      paymentMethod: item.payment_method,
+      receipt: item.receipt,
+      notes: item.notes,
+      createdAt: new Date(item.created_at)
+    })) || [];
+  }
+
+  async createRawMaterialPurchase(purchase: Omit<RawMaterialPurchase, 'id' | 'createdAt'>): Promise<RawMaterialPurchase> {
+    const { data, error } = await supabase
+      .from('raw_material_purchases')
+      .insert([{
+        client_id: purchase.clientId,
+        raw_material_id: purchase.rawMaterialId,
+        quantity: purchase.quantity,
+        unit_price: purchase.unitPrice,
+        total_cost: purchase.totalCost,
+        purchase_date: purchase.purchaseDate.toISOString().split('T')[0],
+        supplier: purchase.supplier,
+        payment_method: purchase.paymentMethod,
+        receipt: purchase.receipt,
+        notes: purchase.notes
+      }])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Erro ao criar compra de insumo:', error);
+      throw new Error('Erro ao criar compra de insumo');
+    }
+
+    return {
+      id: data.id,
+      clientId: data.client_id,
+      rawMaterialId: data.raw_material_id,
+      quantity: data.quantity,
+      unitPrice: data.unit_price,
+      totalCost: data.total_cost,
+      purchaseDate: new Date(data.purchase_date),
+      supplier: data.supplier,
+      paymentMethod: data.payment_method,
+      receipt: data.receipt,
+      notes: data.notes,
+      createdAt: new Date(data.created_at)
+    };
+  }
+
+  async updateRawMaterialPurchase(id: string, purchase: Partial<RawMaterialPurchase>): Promise<void> {
+    const updateData: any = {};
+    
+    if (purchase.rawMaterialId !== undefined) updateData.raw_material_id = purchase.rawMaterialId;
+    if (purchase.quantity !== undefined) updateData.quantity = purchase.quantity;
+    if (purchase.unitPrice !== undefined) updateData.unit_price = purchase.unitPrice;
+    if (purchase.totalCost !== undefined) updateData.total_cost = purchase.totalCost;
+    if (purchase.purchaseDate !== undefined) updateData.purchase_date = purchase.purchaseDate.toISOString().split('T')[0];
+    if (purchase.supplier !== undefined) updateData.supplier = purchase.supplier;
+    if (purchase.paymentMethod !== undefined) updateData.payment_method = purchase.paymentMethod;
+    if (purchase.receipt !== undefined) updateData.receipt = purchase.receipt;
+    if (purchase.notes !== undefined) updateData.notes = purchase.notes;
+
+    const { error } = await supabase
+      .from('raw_material_purchases')
+      .update(updateData)
+      .eq('id', id);
+
+    if (error) {
+      console.error('Erro ao atualizar compra de insumo:', error);
+      throw new Error('Erro ao atualizar compra de insumo');
+    }
+  }
+
+  async deleteRawMaterialPurchase(id: string): Promise<void> {
+    const { error } = await supabase
+      .from('raw_material_purchases')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Erro ao deletar compra de insumo:', error);
+      throw new Error('Erro ao deletar compra de insumo');
     }
   }
 }
