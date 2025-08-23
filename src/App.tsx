@@ -350,10 +350,7 @@ function App() {
     setCurrentUser(user);
   };
 
-  const handleRegister = async (data: { email: string; password: string; name: string; companyName: string; phone: string }) => {
-    const user = await authService.register(data);
-    setCurrentUser(user);
-  };
+
 
   const handleLogout = () => {
     authService.logout();
@@ -371,7 +368,14 @@ function App() {
   const renderCurrentPage = () => {
     switch (currentPage) {
       case 'dashboard': 
-        return <Dashboard products={products} sales={sales} />;
+        return <Dashboard 
+          products={products} 
+          sales={sales} 
+          rawMaterials={rawMaterials}
+          fixedExpenses={fixedExpenses}
+          variableExpenses={variableExpenses}
+          rawMaterialPurchases={rawMaterialPurchases}
+        />;
       case 'insumos': 
         return <RawMaterialsForm 
           rawMaterials={rawMaterials}
@@ -413,7 +417,14 @@ function App() {
           onDeleteSale={handleDeleteSale}
         />;
       default: 
-        return <Dashboard products={products} sales={sales} />;
+        return <Dashboard 
+          products={products} 
+          sales={sales} 
+          rawMaterials={rawMaterials}
+          fixedExpenses={fixedExpenses}
+          variableExpenses={variableExpenses}
+          rawMaterialPurchases={rawMaterialPurchases}
+        />;
     }
   };
 
@@ -442,7 +453,6 @@ function App() {
     return (
       <Auth 
         onLogin={handleLogin}
-        onRegister={handleRegister}
       />
     );
   }

@@ -11,14 +11,6 @@ interface LoginCredentials {
   password: string;
 }
 
-interface RegisterData {
-  email: string;
-  password: string;
-  name: string;
-  companyName: string;
-  phone: string;
-}
-
 class AuthService {
   private currentUser: AuthUser | null = null;
 
@@ -43,80 +35,55 @@ class AuthService {
   }
 
   async login(credentials: LoginCredentials): Promise<AuthUser> {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: credentials.email,
-      password: credentials.password,
-    });
+    try {
+      console.log('Tentando fazer login com:', credentials.email);
+      
+      // Buscar usuário diretamente na tabela clients
+      const { data: clientData, error: clientError } = await supabase
+        .from('clients')
+        .select('*')
+        .eq('email', credentials.email)
+        .eq('password_hash', credentials.password)
+        .eq('is_active', true)
+        .single();
 
-    if (error) throw new Error(error.message);
-    if (!data.user) throw new Error('Usuário não encontrado');
-    
-    // Buscar dados do cliente na tabela clients
-    const { data: clientData, error: clientError } = await supabase
-      .from('clients')
-      .select('*')
-      .eq('id', data.user.id)
-      .single();
+      if (clientError) {
+        console.error('Erro ao buscar dados do cliente:', clientError);
+        if (clientError.code === 'PGRST116') {
+          throw new Error('Email ou senha incorretos');
+        }
+        throw new Error('Erro ao carregar dados do usuário: ' + clientError.message);
+      }
 
-    if (clientError) throw new Error('Erro ao carregar dados do usuário');
+      if (!clientData) {
+        console.error('Dados do cliente não encontrados');
+        throw new Error('Email ou senha incorretos');
+      }
 
-    const authUser: AuthUser = {
-      id: clientData.id,
-      email: clientData.email,
-      name: clientData.name,
-      companyName: clientData.company_name,
-      phone: clientData.phone
-    };
+      console.log('Dados do cliente encontrados:', clientData);
 
-    this.currentUser = authUser;
-    this.saveUserToStorage(authUser);
+      const authUser: AuthUser = {
+        id: clientData.id,
+        email: clientData.email,
+        name: clientData.name,
+        companyName: clientData.company_name,
+        phone: clientData.phone
+      };
 
-    return authUser;
+      this.currentUser = authUser;
+      this.saveUserToStorage(authUser);
+
+      return authUser;
+    } catch (error) {
+      console.error('Erro completo no login:', error);
+      throw error;
+    }
   }
 
-  async register(data: RegisterData): Promise<AuthUser> {
-    // 1. Criar usuário no Supabase Auth
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email: data.email,
-      password: data.password,
-    });
 
-    if (authError) throw new Error(authError.message);
-    if (!authData.user) throw new Error('Erro ao criar usuário');
-
-    // 2. Criar registro na tabela clients
-    const { data: clientData, error: clientError } = await supabase
-      .from('clients')
-      .insert([{
-        id: authData.user.id,
-        email: data.email,
-        name: data.name,
-        company_name: data.companyName,
-        phone: data.phone
-      }])
-      .select()
-      .single();
-
-    if (clientError) throw new Error('Erro ao salvar dados do usuário');
-
-    const authUser: AuthUser = {
-      id: clientData.id,
-      email: clientData.email,
-      name: clientData.name,
-      companyName: clientData.company_name,
-      phone: clientData.phone
-    };
-
-    this.currentUser = authUser;
-    this.saveUserToStorage(authUser);
-
-    return authUser;
-  }
 
   async logout() {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw new Error(error.message);
-    
+    // Limpar dados locais
     this.currentUser = null;
     this.clearUserFromStorage();
   }
@@ -124,30 +91,9 @@ class AuthService {
   async getCurrentUser(): Promise<AuthUser | null> {
     if (this.currentUser) return this.currentUser;
 
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) return null;
-
-    const { data: clientData, error } = await supabase
-      .from('clients')
-      .select('*')
-      .eq('id', user.id)
-      .single();
-
-    if (error) return null;
-
-    const authUser: AuthUser = {
-      id: clientData.id,
-      email: clientData.email,
-      name: clientData.name,
-      companyName: clientData.company_name,
-      phone: clientData.phone
-    };
-
-    this.currentUser = authUser;
-    this.saveUserToStorage(authUser);
-
-    return authUser;
+    // Se não há usuário em memória, retornar null
+    // O usuário precisará fazer login novamente
+    return null;
   }
 
   isAuthenticated(): boolean {
