@@ -1,5 +1,5 @@
 import { supabase } from './authService';
-import { RawMaterial, Product, FixedExpense, VariableExpense, Sale, RawMaterialPurchase } from '../types';
+import { RawMaterial, Product, FixedExpense, VariableExpense, Sale, RawMaterialPurchase, EmployeeCost } from '../types';
 
 export class SupabaseService {
   // =============================================
@@ -612,6 +612,131 @@ export class SupabaseService {
     if (error) {
       console.error('Erro ao deletar compra de insumo:', error);
       throw new Error('Erro ao deletar compra de insumo');
+    }
+  }
+
+  // =============================================
+  // CUSTOS DE FUNCIONÁRIOS (EMPLOYEE COSTS)
+  // =============================================
+  
+  async getEmployeeCosts(clientId: string): Promise<EmployeeCost[]> {
+    const { data, error } = await supabase
+      .from('employee_costs')
+      .select('*')
+      .eq('client_id', clientId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Erro ao buscar custos de funcionários:', error);
+      throw new Error('Erro ao carregar custos de funcionários');
+    }
+
+    return data?.map(item => ({
+      id: item.id,
+      clientId: item.client_id,
+      professional: item.professional,
+      hourlyCost: item.hourly_cost,
+      averageSalary: item.average_salary,
+      benefits: item.benefits,
+      fgts: item.fgts,
+      vacationAllowance: item.vacation_allowance,
+      vacationBonus: item.vacation_bonus,
+      fgtsVacationBonus: item.fgts_vacation_bonus,
+      thirteenthSalary: item.thirteenth_salary,
+      fgtsThirteenth: item.fgts_thirteenth,
+      noticePeriod: item.notice_period,
+      fgtsNoticePeriod: item.fgts_notice_period,
+      fgtsPenalty: item.fgts_penalty,
+      createdAt: new Date(item.created_at),
+      updatedAt: new Date(item.updated_at)
+    })) || [];
+  }
+
+  async createEmployeeCost(employeeCost: Omit<EmployeeCost, 'id' | 'createdAt' | 'updatedAt'>): Promise<EmployeeCost> {
+    const { data, error } = await supabase
+      .from('employee_costs')
+      .insert([{
+        client_id: employeeCost.clientId,
+        professional: employeeCost.professional,
+        hourly_cost: employeeCost.hourlyCost,
+        average_salary: employeeCost.averageSalary,
+        benefits: employeeCost.benefits,
+        fgts: employeeCost.fgts,
+        vacation_allowance: employeeCost.vacationAllowance,
+        vacation_bonus: employeeCost.vacationBonus,
+        fgts_vacation_bonus: employeeCost.fgtsVacationBonus,
+        thirteenth_salary: employeeCost.thirteenthSalary,
+        fgts_thirteenth: employeeCost.fgtsThirteenth,
+        notice_period: employeeCost.noticePeriod,
+        fgts_notice_period: employeeCost.fgtsNoticePeriod,
+        fgts_penalty: employeeCost.fgtsPenalty
+      }])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Erro ao criar custo de funcionário:', error);
+      throw new Error('Erro ao criar custo de funcionário');
+    }
+
+    return {
+      id: data.id,
+      clientId: data.client_id,
+      professional: data.professional,
+      hourlyCost: data.hourly_cost,
+      averageSalary: data.average_salary,
+      benefits: data.benefits,
+      fgts: data.fgts,
+      vacationAllowance: data.vacation_allowance,
+      vacationBonus: data.vacation_bonus,
+      fgtsVacationBonus: data.fgts_vacation_bonus,
+      thirteenthSalary: data.thirteenth_salary,
+      fgtsThirteenth: data.fgts_thirteenth,
+      noticePeriod: data.notice_period,
+      fgtsNoticePeriod: data.fgts_notice_period,
+      fgtsPenalty: data.fgts_penalty,
+      createdAt: new Date(data.created_at),
+      updatedAt: new Date(data.updated_at)
+    };
+  }
+
+  async updateEmployeeCost(id: string, employeeCost: Partial<EmployeeCost>): Promise<void> {
+    const updateData: any = {};
+    
+    if (employeeCost.professional !== undefined) updateData.professional = employeeCost.professional;
+    if (employeeCost.hourlyCost !== undefined) updateData.hourly_cost = employeeCost.hourlyCost;
+    if (employeeCost.averageSalary !== undefined) updateData.average_salary = employeeCost.averageSalary;
+    if (employeeCost.benefits !== undefined) updateData.benefits = employeeCost.benefits;
+    if (employeeCost.fgts !== undefined) updateData.fgts = employeeCost.fgts;
+    if (employeeCost.vacationAllowance !== undefined) updateData.vacation_allowance = employeeCost.vacationAllowance;
+    if (employeeCost.vacationBonus !== undefined) updateData.vacation_bonus = employeeCost.vacationBonus;
+    if (employeeCost.fgtsVacationBonus !== undefined) updateData.fgts_vacation_bonus = employeeCost.fgtsVacationBonus;
+    if (employeeCost.thirteenthSalary !== undefined) updateData.thirteenth_salary = employeeCost.thirteenthSalary;
+    if (employeeCost.fgtsThirteenth !== undefined) updateData.fgts_thirteenth = employeeCost.fgtsThirteenth;
+    if (employeeCost.noticePeriod !== undefined) updateData.notice_period = employeeCost.noticePeriod;
+    if (employeeCost.fgtsNoticePeriod !== undefined) updateData.fgts_notice_period = employeeCost.fgtsNoticePeriod;
+    if (employeeCost.fgtsPenalty !== undefined) updateData.fgts_penalty = employeeCost.fgtsPenalty;
+
+    const { error } = await supabase
+      .from('employee_costs')
+      .update(updateData)
+      .eq('id', id);
+
+    if (error) {
+      console.error('Erro ao atualizar custo de funcionário:', error);
+      throw new Error('Erro ao atualizar custo de funcionário');
+    }
+  }
+
+  async deleteEmployeeCost(id: string): Promise<void> {
+    const { error } = await supabase
+      .from('employee_costs')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Erro ao deletar custo de funcionário:', error);
+      throw new Error('Erro ao deletar custo de funcionário');
     }
   }
 }

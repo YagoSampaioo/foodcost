@@ -98,6 +98,27 @@ export interface RawMaterialPurchase {
   createdAt: Date;
 }
 
+// Novo tipo para custo de funcionários
+export interface EmployeeCost {
+  id: string;
+  clientId: string;
+  professional: string;
+  hourlyCost: number;
+  averageSalary: number;
+  benefits: number; // Vale Transp, Refeição, Plano de Saúde, Seguro
+  fgts: number;
+  vacationAllowance: number; // Férias 1/12
+  vacationBonus: number; // 1/3 Férias
+  fgtsVacationBonus: number; // FGTS FÉRIAS e ADICIONAL DE 1/3
+  thirteenthSalary: number; // 13 Salário
+  fgtsThirteenth: number; // FGTS 13 Salário
+  noticePeriod: number; // Aviso Prévio
+  fgtsNoticePeriod: number; // FGTS Aviso Prévio
+  fgtsPenalty: number; // Multa FGTS
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface Sale {
   id: string;
   clientId: string;

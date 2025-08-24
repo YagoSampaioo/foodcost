@@ -16,7 +16,7 @@ import {
   Clock,
   Award
 } from 'lucide-react';
-import { Product, Sale, RawMaterial, FixedExpense, VariableExpense, RawMaterialPurchase } from '../types';
+import { Product, Sale, RawMaterial, FixedExpense, VariableExpense, RawMaterialPurchase, EmployeeCost } from '../types';
 
 interface DashboardProps {
   products: Product[];
@@ -25,6 +25,7 @@ interface DashboardProps {
   fixedExpenses: FixedExpense[];
   variableExpenses: VariableExpense[];
   rawMaterialPurchases: RawMaterialPurchase[];
+  employeeCosts: EmployeeCost[];
 }
 
 export default function Dashboard({ 
@@ -33,8 +34,11 @@ export default function Dashboard({
   rawMaterials, 
   fixedExpenses, 
   variableExpenses, 
-  rawMaterialPurchases 
+  rawMaterialPurchases,
+  employeeCosts
 }: DashboardProps) {
+  // Garantir que employeeCosts seja sempre um array
+  const safeEmployeeCosts = employeeCosts || [];
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -86,6 +90,20 @@ export default function Dashboard({
   const totalMonthOrders = currentMonthSales.reduce((sum, sale) => sum + sale.numberOfOrders, 0);
   
   const averageMonthTicket = totalMonthOrders > 0 ? totalMonthSales / totalMonthOrders : 0;
+
+  // Despesas variáveis do mês atual
+  const getCurrentMonthVariableExpenses = () => {
+    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
+    
+    return variableExpenses.filter(expense => {
+      const expenseDate = new Date(expense.expenseDate);
+      return expenseDate.getMonth() === currentMonth && 
+             expenseDate.getFullYear() === currentYear;
+    });
+  };
+
+  const currentMonthVariableExpenses = getCurrentMonthVariableExpenses();
 
   // CMV (Custo das Mercadorias Vendidas) - Mês atual
   const calculateCMV = () => {
@@ -145,6 +163,25 @@ export default function Dashboard({
           expenseDate.getFullYear() === currentYear) {
         totalCMO += expense.amount;
       }
+    });
+    
+    // Custos de funcionários (CMO)
+    safeEmployeeCosts.forEach(employee => {
+      // Salário mensal + encargos + FGTS + férias + 13º + outros benefícios
+      const monthlyEmployeeCost = 
+        employee.averageSalary + 
+        employee.benefits + 
+        employee.fgts + 
+        employee.vacationAllowance + 
+        employee.vacationBonus + 
+        employee.fgtsVacationBonus + 
+        employee.thirteenthSalary + 
+        employee.fgtsThirteenth + 
+        employee.noticePeriod + 
+        employee.fgtsNoticePeriod + 
+        employee.fgtsPenalty;
+      
+      totalCMO += monthlyEmployeeCost;
     });
     
     return totalCMO;
@@ -399,6 +436,126 @@ export default function Dashboard({
             </div>
           </div>
         </div>
+      </div>
+
+      {/* ===================================================== */}
+      {/* COMPOSIÇÃO DETALHADA DO CMO */}
+      {/* ===================================================== */}
+      
+      <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 mb-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+          <BarChart3 className="h-5 w-5 text-orange-600 mr-2" />
+          Composição do CMO (Custos Operacionais Mensais)
+        </h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Despesas Fixas */}
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h4 className="font-medium text-gray-900 mb-2">Despesas Fixas</h4>
+            <p className="text-2xl font-bold text-gray-900">
+              {formatCurrency(fixedExpenses
+                .filter(expense => expense.isActive)
+                .reduce((sum, expense) => {
+                  switch (expense.frequency) {
+                    case 'mensal': return sum + expense.amount;
+                    case 'trimestral': return sum + expense.amount / 3;
+                    case 'semestral': return sum + expense.amount / 6;
+                    case 'anual': return sum + expense.amount / 12;
+                    default: return sum;
+                  }
+                }, 0)
+              )}
+            </p>
+            <p className="text-sm text-gray-500">
+              {fixedExpenses.filter(e => e.isActive).length} despesas ativas
+            </p>
+          </div>
+
+          {/* Despesas Variáveis */}
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h4 className="font-medium text-gray-900 mb-2">Despesas Variáveis</h4>
+            <p className="text-2xl font-bold text-gray-900">
+              {formatCurrency(currentMonthVariableExpenses.reduce((sum, expense) => sum + expense.amount, 0))}
+            </p>
+            <p className="text-sm text-gray-500">
+              {currentMonthVariableExpenses.length} despesas este mês
+            </p>
+          </div>
+
+          {/* Custos de Funcionários */}
+          <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
+            <h4 className="font-medium text-orange-900 mb-2">Custos de Funcionários</h4>
+            <p className="text-2xl font-bold text-orange-900">
+              {formatCurrency(safeEmployeeCosts.reduce((sum, employee) => 
+                sum + employee.averageSalary + 
+                employee.benefits + 
+                employee.fgts + 
+                employee.vacationAllowance + 
+                employee.vacationBonus + 
+                employee.fgtsVacationBonus + 
+                employee.thirteenthSalary + 
+                employee.fgtsThirteenth + 
+                employee.noticePeriod + 
+                employee.fgtsNoticePeriod + 
+                employee.fgtsPenalty, 0
+              ))}
+            </p>
+            <p className="text-sm text-orange-700">
+              {safeEmployeeCosts.length} funcionários
+            </p>
+          </div>
+        </div>
+
+        {/* Detalhamento dos Custos de Funcionários */}
+        {safeEmployeeCosts.length > 0 && (
+          <div className="mt-6">
+            <h4 className="font-medium text-gray-900 mb-3">Detalhamento por Funcionário</h4>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Profissional</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Salário</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Encargos</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">FGTS</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Férias + 13º</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Total Mensal</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {safeEmployeeCosts.map((employee) => {
+                    const totalMonthly = 
+                      employee.averageSalary + 
+                      employee.benefits + 
+                      employee.fgts + 
+                      employee.vacationAllowance + 
+                      employee.vacationBonus + 
+                      employee.fgtsVacationBonus + 
+                      employee.thirteenthSalary + 
+                      employee.fgtsThirteenth + 
+                      employee.noticePeriod + 
+                      employee.fgtsNoticePeriod + 
+                      employee.fgtsPenalty;
+                    
+                    const fgtsTotal = employee.fgts + employee.fgtsVacationBonus + employee.fgtsThirteenth + employee.fgtsNoticePeriod + employee.fgtsPenalty;
+                    const ferias13Total = employee.vacationAllowance + employee.vacationBonus + employee.thirteenthSalary;
+                    
+                    return (
+                      <tr key={employee.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-2 text-sm font-medium text-gray-900">{employee.professional}</td>
+                        <td className="px-4 py-2 text-sm text-gray-600">{formatCurrency(employee.averageSalary)}</td>
+                        <td className="px-4 py-2 text-sm text-gray-600">{formatCurrency(employee.benefits)}</td>
+                        <td className="px-4 py-2 text-sm text-gray-600">{formatCurrency(fgtsTotal)}</td>
+                        <td className="px-4 py-2 text-sm text-gray-600">{formatCurrency(ferias13Total)}</td>
+                        <td className="px-4 py-2 text-sm font-bold text-orange-600">{formatCurrency(totalMonthly)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ===================================================== */}

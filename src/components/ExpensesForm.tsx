@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { Plus, Edit, Trash2, Calendar, DollarSign, TrendingUp, Package } from 'lucide-react';
-import { FixedExpense, VariableExpense, RawMaterialPurchase, RawMaterial } from '../types';
+import { Plus, Edit, Trash2, Calendar, DollarSign, TrendingUp, Package, Users } from 'lucide-react';
+import { FixedExpense, VariableExpense, RawMaterialPurchase, RawMaterial, EmployeeCost } from '../types';
 
 interface ExpensesFormProps {
   fixedExpenses: FixedExpense[];
   variableExpenses: VariableExpense[];
   rawMaterialPurchases: RawMaterialPurchase[];
   rawMaterials: RawMaterial[];
+  employeeCosts: EmployeeCost[];
   onAddFixedExpense: (expense: Omit<FixedExpense, 'id' | 'createdAt'>) => void;
   onUpdateFixedExpense: (id: string, expense: Omit<FixedExpense, 'id' | 'createdAt'>) => void;
   onDeleteFixedExpense: (id: string) => void;
@@ -17,6 +18,9 @@ interface ExpensesFormProps {
   onUpdateRawMaterialPurchase: (id: string, purchase: Omit<RawMaterialPurchase, 'id' | 'createdAt'>) => void;
   onDeleteRawMaterialPurchase: (id: string) => void;
   onAddRawMaterial: (rawMaterial: Omit<RawMaterial, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  onAddEmployeeCost: (employeeCost: Omit<EmployeeCost, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  onUpdateEmployeeCost: (id: string, employeeCost: Omit<EmployeeCost, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  onDeleteEmployeeCost: (id: string) => void;
 }
 
 export default function ExpensesForm({
@@ -24,6 +28,7 @@ export default function ExpensesForm({
   variableExpenses,
   rawMaterialPurchases,
   rawMaterials,
+  employeeCosts,
   onAddFixedExpense,
   onUpdateFixedExpense,
   onDeleteFixedExpense,
@@ -33,11 +38,14 @@ export default function ExpensesForm({
   onAddRawMaterialPurchase,
   onUpdateRawMaterialPurchase,
   onDeleteRawMaterialPurchase,
-  onAddRawMaterial
+  onAddRawMaterial,
+  onAddEmployeeCost,
+  onUpdateEmployeeCost,
+  onDeleteEmployeeCost
 }: ExpensesFormProps) {
-  const [activeTab, setActiveTab] = useState<'fixed' | 'variable' | 'purchases'>('fixed');
+  const [activeTab, setActiveTab] = useState<'fixed' | 'variable' | 'purchases' | 'employees'>('fixed');
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingExpense, setEditingExpense] = useState<FixedExpense | VariableExpense | RawMaterialPurchase | null>(null);
+  const [editingExpense, setEditingExpense] = useState<FixedExpense | VariableExpense | RawMaterialPurchase | EmployeeCost | null>(null);
   const [isNewMaterialModalOpen, setIsNewMaterialModalOpen] = useState(false);
   const [newMaterialName, setNewMaterialName] = useState('');
   const [newMaterialDescription, setNewMaterialDescription] = useState('');
@@ -59,7 +67,21 @@ export default function ExpensesForm({
     totalCost: 0,
     purchaseDate: new Date(),
     supplier: '',
-    notes: ''
+    notes: '',
+    // Campos para EmployeeCost
+    professional: '',
+    hourlyCost: 0,
+    averageSalary: 0,
+    benefits: 0,
+    fgts: 0,
+    vacationAllowance: 0,
+    vacationBonus: 0,
+    fgtsVacationBonus: 0,
+    thirteenthSalary: 0,
+    fgtsThirteenth: 0,
+    noticePeriod: 0,
+    fgtsNoticePeriod: 0,
+    fgtsPenalty: 0
   });
 
   const frequencies = [
@@ -160,6 +182,40 @@ export default function ExpensesForm({
           notes: formData.notes
         });
       }
+    } else if (activeTab === 'employees') {
+      if (editingExpense && 'professional' in editingExpense) {
+        onUpdateEmployeeCost(editingExpense.id, {
+          professional: formData.professional,
+          hourlyCost: formData.hourlyCost,
+          averageSalary: formData.averageSalary,
+          benefits: formData.benefits,
+          fgts: formData.fgts,
+          vacationAllowance: formData.vacationAllowance,
+          vacationBonus: formData.vacationBonus,
+          fgtsVacationBonus: formData.fgtsVacationBonus,
+          thirteenthSalary: formData.thirteenthSalary,
+          fgtsThirteenth: formData.fgtsThirteenth,
+          noticePeriod: formData.noticePeriod,
+          fgtsNoticePeriod: formData.fgtsNoticePeriod,
+          fgtsPenalty: formData.fgtsPenalty
+        });
+      } else {
+        onAddEmployeeCost({
+          professional: formData.professional,
+          hourlyCost: formData.hourlyCost,
+          averageSalary: formData.averageSalary,
+          benefits: formData.benefits,
+          fgts: formData.fgts,
+          vacationAllowance: formData.vacationAllowance,
+          vacationBonus: formData.vacationBonus,
+          fgtsVacationBonus: formData.fgtsVacationBonus,
+          thirteenthSalary: formData.thirteenthSalary,
+          fgtsThirteenth: formData.fgtsThirteenth,
+          noticePeriod: formData.noticePeriod,
+          fgtsNoticePeriod: formData.fgtsNoticePeriod,
+          fgtsPenalty: formData.fgtsPenalty
+        });
+      }
     }
     
     resetForm();
@@ -211,6 +267,40 @@ export default function ExpensesForm({
         supplier: expense.supplier,
         notes: expense.notes || ''
       });
+    } else if ('professional' in expense) {
+      setActiveTab('employees');
+      setFormData({
+        name: '',
+        description: '',
+        amount: 0,
+        category: '',
+        frequency: 'mensal',
+        dueDate: 1,
+        isActive: true,
+        date: new Date(),
+        paymentMethod: '',
+        receipt: '',
+        rawMaterialId: '',
+        quantity: 0,
+        unitPrice: 0,
+        totalCost: 0,
+        purchaseDate: new Date(),
+        supplier: '',
+        notes: '',
+        professional: expense.professional,
+        hourlyCost: expense.hourlyCost,
+        averageSalary: expense.averageSalary,
+        benefits: expense.benefits,
+        fgts: expense.fgts,
+        vacationAllowance: expense.vacationAllowance,
+        vacationBonus: expense.vacationBonus,
+        fgtsVacationBonus: expense.fgtsVacationBonus,
+        thirteenthSalary: expense.thirteenthSalary,
+        fgtsThirteenth: expense.fgtsThirteenth,
+        noticePeriod: expense.noticePeriod,
+        fgtsNoticePeriod: expense.fgtsNoticePeriod,
+        fgtsPenalty: expense.fgtsPenalty
+      });
     } else {
       setActiveTab('variable');
       setFormData({
@@ -238,7 +328,7 @@ export default function ExpensesForm({
   };
 
   const handleDelete = (id: string) => {
-    const expense = [...fixedExpenses, ...variableExpenses, ...rawMaterialPurchases].find(e => e.id === id);
+    const expense = [...fixedExpenses, ...variableExpenses, ...rawMaterialPurchases, ...employeeCosts].find(e => e.id === id);
     if (!expense) return;
 
     if ('frequency' in expense) {
@@ -248,6 +338,10 @@ export default function ExpensesForm({
     } else if ('rawMaterialId' in expense) {
       if (window.confirm('Tem certeza que deseja excluir esta compra de insumo?')) {
         onDeleteRawMaterialPurchase(id);
+      }
+    } else if ('professional' in expense) {
+      if (window.confirm('Tem certeza que deseja excluir este custo de funcionário?')) {
+        onDeleteEmployeeCost(id);
       }
     } else {
       if (window.confirm('Tem certeza que deseja excluir esta despesa variável?')) {
@@ -307,7 +401,21 @@ export default function ExpensesForm({
       totalCost: 0,
       purchaseDate: new Date(),
       supplier: '',
-      notes: ''
+      notes: '',
+      // Campos para EmployeeCost
+      professional: '',
+      hourlyCost: 0,
+      averageSalary: 0,
+      benefits: 0,
+      fgts: 0,
+      vacationAllowance: 0,
+      vacationBonus: 0,
+      fgtsVacationBonus: 0,
+      thirteenthSalary: 0,
+      fgtsThirteenth: 0,
+      noticePeriod: 0,
+      fgtsNoticePeriod: 0,
+      fgtsPenalty: 0
     });
     setEditingExpense(null);
   };
@@ -407,17 +515,17 @@ export default function ExpensesForm({
         
         <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
           <div className="flex items-center">
-            <div className="h-8 w-8 bg-purple-100 rounded-full flex items-center justify-center">
-              <span className="text-purple-600 font-bold text-sm">
-                {fixedExpenses.filter(e => e.isActive).length + variableExpenses.length + rawMaterialPurchases.length}
-              </span>
-            </div>
-            <div className="ml-3">
-              <p className="text-sm font-medium text-gray-600">Total de Registros</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {fixedExpenses.filter(e => e.isActive).length + variableExpenses.length + rawMaterialPurchases.length}
-              </p>
-            </div>
+                         <div className="h-8 w-8 bg-purple-100 rounded-full flex items-center justify-center">
+               <span className="text-purple-600 font-bold text-sm">
+                 {fixedExpenses.filter(e => e.isActive).length + variableExpenses.length + rawMaterialPurchases.length + employeeCosts.length}
+               </span>
+             </div>
+             <div className="ml-3">
+               <p className="text-sm font-medium text-gray-600">Total de Registros</p>
+               <p className="text-2xl font-bold text-gray-900">
+                 {fixedExpenses.filter(e => e.isActive).length + variableExpenses.length + rawMaterialPurchases.length + employeeCosts.length}
+               </p>
+             </div>
           </div>
         </div>
       </div>
@@ -446,17 +554,28 @@ export default function ExpensesForm({
             >
               Despesas Variáveis ({variableExpenses.length})
             </button>
-            <button
-              onClick={() => setActiveTab('purchases')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'purchases'
-                  ? 'border-orange-500 text-orange-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <Package className="h-4 w-4 inline mr-2" />
-              Compras de Insumos ({rawMaterialPurchases.length})
-            </button>
+                         <button
+               onClick={() => setActiveTab('purchases')}
+               className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                 activeTab === 'purchases'
+                   ? 'border-orange-500 text-orange-600'
+                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+               }`}
+             >
+               <Package className="h-4 w-4 inline mr-2" />
+               Compras de Insumos ({rawMaterialPurchases.length})
+             </button>
+             <button
+               onClick={() => setActiveTab('employees')}
+               className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                 activeTab === 'employees'
+                   ? 'border-orange-500 text-orange-600'
+                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+               }`}
+             >
+               <Users className="h-4 w-4 inline mr-2" />
+               Custo de Funcionários ({employeeCosts.length})
+             </button>
           </nav>
         </div>
 
@@ -967,6 +1086,375 @@ export default function ExpensesForm({
               </div>
             </div>
           )}
+
+          {/* Aba: Custo de Funcionários */}
+          {activeTab === 'employees' && (
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-semibold text-gray-900">Custo de Funcionários</h3>
+                <button
+                  onClick={() => setIsFormOpen(true)}
+                  className="bg-orange-600 hover:bg-orange-700 text-white px-3 py-2 rounded-lg flex items-center gap-2 transition-colors text-sm"
+                >
+                  <Plus className="h-4 w-4" />
+                  Novo Custo de Funcionário
+                </button>
+              </div>
+
+              {/* Formulário de Novo Custo de Funcionário - Aparece em cima */}
+              {isFormOpen && activeTab === 'employees' && (
+                <div className="bg-orange-50 border border-orange-200 rounded-lg p-6">
+                  <h4 className="text-lg font-semibold text-orange-900 mb-4">
+                    {editingExpense ? 'Editar Custo de Funcionário' : 'Novo Custo de Funcionário'}
+                  </h4>
+                  
+                  <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Profissional
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.professional}
+                          onChange={(e) => setFormData({...formData, professional: e.target.value})}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          required
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Custo Hora (R$)
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={formData.hourlyCost === 0 ? '' : formData.hourlyCost}
+                          onChange={(e) => setFormData({...formData, hourlyCost: e.target.value === '' ? 0 : parseFloat(e.target.value) || 0})}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          required
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Salário Médio (R$)
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={formData.averageSalary === 0 ? '' : formData.averageSalary}
+                          onChange={(e) => setFormData({...formData, averageSalary: e.target.value === '' ? 0 : parseFloat(e.target.value) || 0})}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          required
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Encargos (R$)
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={formData.benefits === 0 ? '' : formData.benefits}
+                          onChange={(e) => setFormData({...formData, benefits: e.target.value === '' ? 0 : parseFloat(e.target.value) || 0})}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          required
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          FGTS (R$)
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={formData.fgts === 0 ? '' : formData.fgts}
+                          onChange={(e) => setFormData({...formData, fgts: e.target.value === '' ? 0 : parseFloat(e.target.value) || 0})}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          required
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Férias 1/12 (R$)
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={formData.vacationAllowance === 0 ? '' : formData.vacationAllowance}
+                          onChange={(e) => setFormData({...formData, vacationAllowance: e.target.value === '' ? 0 : parseFloat(e.target.value) || 0})}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          required
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          1/3 Férias (R$)
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={formData.vacationBonus === 0 ? '' : formData.vacationBonus}
+                          onChange={(e) => setFormData({...formData, vacationBonus: e.target.value === '' ? 0 : parseFloat(e.target.value) || 0})}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          required
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          FGTS Férias e 1/3 (R$)
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={formData.fgtsVacationBonus === 0 ? '' : formData.fgtsVacationBonus}
+                          onChange={(e) => setFormData({...formData, fgtsVacationBonus: e.target.value === '' ? 0 : parseFloat(e.target.value) || 0})}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          required
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          13º Salário (R$)
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={formData.thirteenthSalary === 0 ? '' : formData.thirteenthSalary}
+                          onChange={(e) => setFormData({...formData, thirteenthSalary: e.target.value === '' ? 0 : parseFloat(e.target.value) || 0})}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          required
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          FGTS 13º Salário (R$)
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={formData.fgtsThirteenth === 0 ? '' : formData.fgtsThirteenth}
+                          onChange={(e) => setFormData({...formData, fgtsThirteenth: e.target.value === '' ? 0 : parseFloat(e.target.value) || 0})}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          required
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Aviso Prévio (R$)
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={formData.noticePeriod === 0 ? '' : formData.noticePeriod}
+                          onChange={(e) => setFormData({...formData, noticePeriod: e.target.value === '' ? 0 : parseFloat(e.target.value) || 0})}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          required
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          FGTS Aviso Prévio (R$)
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={formData.fgtsNoticePeriod === 0 ? '' : formData.fgtsNoticePeriod}
+                          onChange={(e) => setFormData({...formData, fgtsNoticePeriod: e.target.value === '' ? 0 : parseFloat(e.target.value) || 0})}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          required
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Multa FGTS (R$)
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={formData.fgtsPenalty === 0 ? '' : formData.fgtsPenalty}
+                          onChange={(e) => setFormData({...formData, fgtsPenalty: e.target.value === '' ? 0 : parseFloat(e.target.value) || 0})}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          required
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="flex justify-end space-x-3 pt-4">
+                      <button
+                        type="button"
+                        onClick={cancelEdit}
+                        className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="submit"
+                        className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+                      >
+                        {editingExpense ? 'Atualizar' : 'Cadastrar'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
+
+              {/* Tabela de Custos de Funcionários */}
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Profissional
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Custo Hora
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Salário Médio
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Encargos
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        FGTS
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Férias 1/12
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        1/3 Férias
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        FGTS Férias
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        13º Salário
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        FGTS 13º
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Aviso Prévio
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        FGTS Aviso
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Multa FGTS
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Ações
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {employeeCosts.length === 0 ? (
+                      <tr>
+                        <td colSpan={14} className="px-6 py-4 text-center text-gray-500">
+                          Nenhum custo de funcionário registrado
+                        </td>
+                      </tr>
+                    ) : (
+                      employeeCosts.map((employeeCost) => (
+                        <tr key={employeeCost.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {employeeCost.professional}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            R$ {employeeCost.hourlyCost.toFixed(2)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            R$ {employeeCost.averageSalary.toFixed(2)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            R$ {employeeCost.benefits.toFixed(2)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            R$ {employeeCost.fgts.toFixed(2)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            R$ {employeeCost.vacationAllowance.toFixed(2)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            R$ {employeeCost.vacationBonus.toFixed(2)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            R$ {employeeCost.fgtsVacationBonus.toFixed(2)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            R$ {employeeCost.thirteenthSalary.toFixed(2)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            R$ {employeeCost.fgtsThirteenth.toFixed(2)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            R$ {employeeCost.noticePeriod.toFixed(2)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            R$ {employeeCost.fgtsNoticePeriod.toFixed(2)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            R$ {employeeCost.fgtsPenalty.toFixed(2)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div className="flex space-x-2">
+                              <button
+                                onClick={() => handleEdit(employeeCost)}
+                                className="text-blue-600 hover:text-blue-900"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDelete(employeeCost.id)}
+                                className="text-red-600 hover:text-red-900"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+                
+                {employeeCosts.length === 0 && (
+                  <div className="text-center py-12">
+                    <Users className="mx-auto h-12 w-12 text-gray-400" />
+                    <h3 className="mt-2 text-sm font-medium text-gray-900">Nenhum custo de funcionário registrado</h3>
+                    <p className="mt-1 text-sm text-gray-500">
+                      Comece registrando os custos dos seus funcionários.
+                    </p>
+                  </div>
+                  )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -977,7 +1465,8 @@ export default function ExpensesForm({
             {editingExpense ? 'Editar' : 'Nova'} - {
               activeTab === 'fixed' ? 'Despesa Fixa' : 
               activeTab === 'variable' ? 'Despesa Variável' : 
-              'Compra de Insumo'
+              activeTab === 'purchases' ? 'Compra de Insumo' :
+              'Custo de Funcionário'
             }
           </h3>
           

@@ -6,7 +6,7 @@ import ProductForm from './components/ProductForm';
 import ExpensesForm from './components/ExpensesForm';
 import SalesForm from './components/SalesForm';
 import Auth from './components/Auth';
-import { Product, RawMaterial, FixedExpense, VariableExpense, Sale, AuthUser, RawMaterialPurchase } from './types';
+import { Product, RawMaterial, FixedExpense, VariableExpense, Sale, AuthUser, RawMaterialPurchase, EmployeeCost } from './types';
 import { authService } from './services/authService';
 import { supabaseService } from './services/supabaseService';
 
@@ -19,6 +19,7 @@ function App() {
   const [fixedExpenses, setFixedExpenses] = useState<FixedExpense[]>([]);
   const [variableExpenses, setVariableExpenses] = useState<VariableExpense[]>([]);
   const [rawMaterialPurchases, setRawMaterialPurchases] = useState<RawMaterialPurchase[]>([]);
+  const [employeeCosts, setEmployeeCosts] = useState<EmployeeCost[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
 
   // Verificar se usuário está autenticado
@@ -55,6 +56,7 @@ function App() {
             fixedExpensesData,
             variableExpensesData,
             rawMaterialPurchasesData,
+            employeeCostsData,
             salesData
           ] = await Promise.all([
             supabaseService.getProducts(currentUser.id),
@@ -62,6 +64,7 @@ function App() {
             supabaseService.getFixedExpenses(currentUser.id),
             supabaseService.getVariableExpenses(currentUser.id),
             supabaseService.getRawMaterialPurchases(currentUser.id),
+            supabaseService.getEmployeeCosts(currentUser.id),
             supabaseService.getSales(currentUser.id)
           ]);
 
@@ -81,6 +84,9 @@ function App() {
           const validRawMaterialPurchases = rawMaterialPurchasesData.filter(purchase => 
             purchase && typeof purchase === 'object'
           );
+          const validEmployeeCosts = employeeCostsData.filter(employeeCost => 
+            employeeCost && typeof employeeCost === 'object'
+          );
           const validSales = salesData.filter(sale => 
             sale && typeof sale === 'object'
           );
@@ -90,6 +96,7 @@ function App() {
           setFixedExpenses(validFixedExpenses);
           setVariableExpenses(validVariableExpenses);
           setRawMaterialPurchases(validRawMaterialPurchases);
+          setEmployeeCosts(validEmployeeCosts);
           setSales(validSales);
         } catch (error) {
           console.error('Erro ao carregar dados do Supabase:', error);
@@ -304,6 +311,46 @@ function App() {
     }
   };
 
+  // Handlers para custos de funcionários (Supabase)
+  const handleAddEmployeeCost = async (employeeCostData: Omit<EmployeeCost, 'id' | 'createdAt' | 'updatedAt'>) => {
+    if (!currentUser) return;
+    
+    try {
+      const newEmployeeCost = await supabaseService.createEmployeeCost({
+        ...employeeCostData,
+        clientId: currentUser.id
+      });
+      setEmployeeCosts([newEmployeeCost, ...employeeCosts]);
+    } catch (error) {
+      console.error('Erro ao criar custo de funcionário:', error);
+      throw error;
+    }
+  };
+
+  const handleUpdateEmployeeCost = async (id: string, employeeCostData: Partial<EmployeeCost>) => {
+    try {
+      await supabaseService.updateEmployeeCost(id, employeeCostData);
+      setEmployeeCosts(employeeCosts.map(employeeCost => 
+        employeeCost.id === id 
+          ? { ...employeeCost, ...employeeCostData }
+          : employeeCost
+      ));
+    } catch (error) {
+      console.error('Erro ao atualizar custo de funcionário:', error);
+      throw error;
+    }
+  };
+
+  const handleDeleteEmployeeCost = async (id: string) => {
+    try {
+      await supabaseService.deleteEmployeeCost(id);
+      setEmployeeCosts(employeeCosts.filter(employeeCost => employeeCost.id !== id));
+    } catch (error) {
+      console.error('Erro ao deletar custo de funcionário:', error);
+      throw error;
+    }
+  };
+
   // Handlers para vendas (Supabase)
   const handleAddSale = async (saleData: Omit<Sale, 'id' | 'createdAt'>) => {
     if (!currentUser) return;
@@ -375,6 +422,7 @@ function App() {
           fixedExpenses={fixedExpenses}
           variableExpenses={variableExpenses}
           rawMaterialPurchases={rawMaterialPurchases}
+          employeeCosts={employeeCosts}
         />;
       case 'insumos': 
         return <RawMaterialsForm 
@@ -398,6 +446,7 @@ function App() {
           variableExpenses={variableExpenses}
           rawMaterialPurchases={rawMaterialPurchases}
           rawMaterials={rawMaterials}
+          employeeCosts={employeeCosts}
           onAddFixedExpense={handleAddFixedExpense}
           onUpdateFixedExpense={handleUpdateFixedExpense}
           onDeleteFixedExpense={handleDeleteFixedExpense}
@@ -408,6 +457,9 @@ function App() {
           onUpdateRawMaterialPurchase={handleUpdateRawMaterialPurchase}
           onDeleteRawMaterialPurchase={handleDeleteRawMaterialPurchase}
           onAddRawMaterial={handleAddMaterial}
+          onAddEmployeeCost={handleAddEmployeeCost}
+          onUpdateEmployeeCost={handleUpdateEmployeeCost}
+          onDeleteEmployeeCost={handleDeleteEmployeeCost}
         />;
       case 'vendas': 
         return <SalesForm 
@@ -424,6 +476,7 @@ function App() {
           fixedExpenses={fixedExpenses}
           variableExpenses={variableExpenses}
           rawMaterialPurchases={rawMaterialPurchases}
+          employeeCosts={employeeCosts}
         />;
     }
   };

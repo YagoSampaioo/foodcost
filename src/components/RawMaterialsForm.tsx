@@ -16,9 +16,8 @@ const RawMaterialsForm: React.FC<RawMaterialsFormProps> = ({
     return material ? material.name : 'Insumo não encontrado';
   };
 
-  const recentPurchases = purchases
-    .sort((a, b) => new Date(b.purchaseDate).getTime() - new Date(a.purchaseDate).getTime())
-    .slice(0, 10);
+  const sortedPurchases = purchases
+    .sort((a, b) => new Date(b.purchaseDate).getTime() - new Date(a.purchaseDate).getTime());
 
   return (
     <div className="space-y-6">
@@ -26,11 +25,11 @@ const RawMaterialsForm: React.FC<RawMaterialsFormProps> = ({
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Package className="h-6 w-6" />
-            Gestão de Insumos
+            <ShoppingCart className="h-6 w-6" />
+            Compras de Insumos
           </h2>
           <p className="text-gray-600 mt-1">
-            Visualize os insumos disponíveis e suas compras recentes
+            Visualize o histórico de compras de insumos
           </p>
         </div>
         <div className="text-sm text-gray-500 bg-gray-100 px-3 py-2 rounded-lg">
@@ -38,71 +37,17 @@ const RawMaterialsForm: React.FC<RawMaterialsFormProps> = ({
         </div>
       </div>
 
-      {/* Insumos Cadastrados */}
-      <div className="bg-white rounded-lg shadow">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">Insumos Cadastrados</h3>
-          <p className="text-sm text-gray-600 mt-1">
-            Para adicionar novos insumos, acesse a aba "Despesas" → "Compras de Insumos"
-          </p>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Nome
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Descrição
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Unidade
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Preço Unitário
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {rawMaterials.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="px-6 py-4 text-center text-gray-500">
-                    Nenhum insumo cadastrado
-                  </td>
-                </tr>
-              ) : (
-                rawMaterials.map((material) => (
-                  <tr key={material.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {material.name}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {material.description || '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {material.unit}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      R$ {material.unitPrice.toFixed(2)}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+
 
       {/* Compras Recentes de Insumos */}
       <div className="bg-white rounded-lg shadow">
         <div className="px-6 py-4 border-b border-gray-200">
           <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
             <ShoppingCart className="h-5 w-5" />
-            Compras Recentes de Insumos
+            Histórico de Compras
           </h3>
           <p className="text-sm text-gray-600 mt-1">
-            Últimas 10 compras registradas
+            Todas as compras de insumos registradas
           </p>
         </div>
         <div className="overflow-x-auto">
@@ -133,14 +78,14 @@ const RawMaterialsForm: React.FC<RawMaterialsFormProps> = ({
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {recentPurchases.length === 0 ? (
+              {sortedPurchases.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-6 py-4 text-center text-gray-500">
                     Nenhuma compra registrada
                   </td>
                 </tr>
               ) : (
-                recentPurchases.map((purchase) => (
+                sortedPurchases.map((purchase) => (
                   <tr key={purchase.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {getMaterialName(purchase.rawMaterialId)}
