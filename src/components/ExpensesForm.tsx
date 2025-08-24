@@ -356,15 +356,15 @@ export default function ExpensesForm({
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-900">Gestão de Despesas</h2>
-        <button
-          onClick={() => setIsFormOpen(true)}
-          className="flex items-center px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          {activeTab === 'fixed' ? 'Nova Despesa Fixa' : 
-           activeTab === 'variable' ? 'Nova Despesa Variável' : 
-           'Nova Compra de Insumo'}
-        </button>
+        {(activeTab === 'fixed' || activeTab === 'variable') && (
+          <button
+            onClick={() => setIsFormOpen(true)}
+            className="flex items-center px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            {activeTab === 'fixed' ? 'Nova Despesa Fixa' : 'Nova Despesa Variável'}
+          </button>
+        )}
       </div>
 
       {/* Resumo financeiro */}
@@ -664,14 +664,212 @@ export default function ExpensesForm({
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <h3 className="text-lg font-semibold text-gray-900">Compras de Insumos</h3>
-                <button
-                  onClick={() => setIsNewMaterialModalOpen(true)}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg flex items-center gap-2 transition-colors text-sm"
-                >
-                  <Plus className="h-4 w-4" />
-                  Novo Insumo
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setIsFormOpen(true)}
+                    className="bg-orange-500 hover:bg-orange-600 text-white px-3 py-2 rounded-lg flex items-center gap-2 transition-colors text-sm"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Nova Compra de Insumo
+                  </button>
+                  <button
+                    onClick={() => setIsNewMaterialModalOpen(true)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg flex items-center gap-2 transition-colors text-sm"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Novo Insumo
+                  </button>
+                </div>
               </div>
+              
+              {/* Formulário de Nova Compra de Insumo - Aparece em cima */}
+              {isFormOpen && activeTab === 'purchases' && (
+                <div className="bg-orange-50 border border-orange-200 rounded-lg p-6">
+                  <h4 className="text-lg font-semibold text-orange-900 mb-4">
+                    {editingExpense ? 'Editar Compra de Insumo' : 'Nova Compra de Insumo'}
+                  </h4>
+                  
+                  <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Insumo
+                        </label>
+                        <select
+                          value={formData.rawMaterialId}
+                          onChange={(e) => setFormData({...formData, rawMaterialId: e.target.value})}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          required
+                        >
+                          <option value="">Selecione um insumo</option>
+                          {rawMaterials.map(material => (
+                            <option key={material.id} value={material.id}>
+                              {material.name} ({material.category})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Quantidade
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={formData.quantity === 0 ? '' : formData.quantity}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            const quantity = value === '' ? 0 : parseFloat(value) || 0;
+                            const totalCost = quantity * formData.unitPrice;
+                            setFormData({...formData, quantity, totalCost})
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          required
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Preço Unitário (R$)
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={formData.unitPrice === 0 ? '' : formData.unitPrice}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            const unitPrice = value === '' ? 0 : parseFloat(value) || 0;
+                            const totalCost = formData.quantity * unitPrice;
+                            setFormData({...formData, unitPrice, totalCost})
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          required
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Custo Total (R$)
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={formData.totalCost === 0 ? '' : formData.totalCost}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setFormData({...formData, totalCost: value === '' ? 0 : parseFloat(value) || 0})
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          required
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Data da Compra
+                        </label>
+                        <input
+                          type="date"
+                          value={formData.purchaseDate.toISOString().split('T')[0]}
+                          onChange={(e) => setFormData({...formData, purchaseDate: new Date(e.target.value)})}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          required
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Fornecedor
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.supplier}
+                          onChange={(e) => setFormData({...formData, supplier: e.target.value})}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          required
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Forma de Pagamento
+                        </label>
+                        <select
+                          value={formData.paymentMethod}
+                          onChange={(e) => setFormData({...formData, paymentMethod: e.target.value})}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          required
+                        >
+                          <option value="">Selecione uma forma</option>
+                          {paymentMethods.map(method => (
+                            <option key={method} value={method}>{method}</option>
+                          ))}
+                        </select>
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Número do Recibo (opcional)
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.receipt}
+                          onChange={(e) => setFormData({...formData, receipt: e.target.value})}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          placeholder="Número do recibo ou comprovante"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Observações (opcional)
+                        </label>
+                        <textarea
+                          value={formData.notes}
+                          onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                          rows={2}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          placeholder="Observações sobre a compra..."
+                        />
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Descrição
+                      </label>
+                      <textarea
+                        value={formData.description}
+                        onChange={(e) => setFormData({...formData, description: e.target.value})}
+                        rows={3}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        placeholder="Descrição detalhada da compra..."
+                      />
+                    </div>
+                    
+                    <div className="flex justify-end space-x-3 pt-4">
+                      <button
+                        type="button"
+                        onClick={cancelEdit}
+                        className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="submit"
+                        className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+                      >
+                        {editingExpense ? 'Atualizar' : 'Cadastrar'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
+              
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
@@ -927,155 +1125,7 @@ export default function ExpensesForm({
                 </>
               )}
 
-              {activeTab === 'purchases' && (
-                <>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Insumo
-                    </label>
-                    <select
-                      value={formData.rawMaterialId}
-                      onChange={(e) => setFormData({...formData, rawMaterialId: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-                      required
-                    >
-                      <option value="">Selecione um insumo</option>
-                      {rawMaterials.map(material => (
-                        <option key={material.id} value={material.id}>
-                          {material.name} ({material.category})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Quantidade
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={formData.quantity === 0 ? '' : formData.quantity}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        const quantity = value === '' ? 0 : parseFloat(value) || 0;
-                        const totalCost = quantity * formData.unitPrice;
-                        setFormData({...formData, quantity, totalCost})
-                      }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-                      required
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Preço Unitário (R$)
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={formData.unitPrice === 0 ? '' : formData.unitPrice}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        const unitPrice = value === '' ? 0 : parseFloat(value) || 0;
-                        const totalCost = formData.quantity * unitPrice;
-                        setFormData({...formData, unitPrice, totalCost})
-                      }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-                      required
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Custo Total (R$)
-                    </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={formData.totalCost === 0 ? '' : formData.totalCost}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          setFormData({...formData, totalCost: value === '' ? 0 : parseFloat(value) || 0})
-                        }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-                        required
-                      />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Data da Compra
-                    </label>
-                    <input
-                      type="date"
-                      value={formData.purchaseDate.toISOString().split('T')[0]}
-                      onChange={(e) => setFormData({...formData, purchaseDate: new Date(e.target.value)})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-                      required
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Fornecedor
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.supplier}
-                      onChange={(e) => setFormData({...formData, supplier: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-                      required
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Forma de Pagamento
-                    </label>
-                    <select
-                      value={formData.paymentMethod}
-                      onChange={(e) => setFormData({...formData, paymentMethod: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-                      required
-                    >
-                      <option value="">Selecione uma forma</option>
-                      {paymentMethods.map(method => (
-                        <option key={method} value={method}>{method}</option>
-                      ))}
-                    </select>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Número do Recibo (opcional)
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.receipt}
-                      onChange={(e) => setFormData({...formData, receipt: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-                      placeholder="Número do recibo ou comprovante"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Observações (opcional)
-                    </label>
-                    <textarea
-                      value={formData.notes}
-                      onChange={(e) => setFormData({...formData, notes: e.target.value})}
-                      rows={2}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-                      placeholder="Observações sobre a compra..."
-                    />
-                  </div>
-                </>
-              )}
+
             </div>
             
             <div>
