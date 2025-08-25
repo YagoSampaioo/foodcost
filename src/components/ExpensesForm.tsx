@@ -141,7 +141,7 @@ export default function ExpensesForm({
           description: formData.description,
           amount: formData.amount,
           category: formData.category,
-          date: formData.date,
+          expenseDate: formData.date,
           paymentMethod: formData.paymentMethod,
           receipt: formData.receipt
         });
@@ -151,7 +151,7 @@ export default function ExpensesForm({
           description: formData.description,
           amount: formData.amount,
           category: formData.category,
-          date: formData.date,
+          expenseDate: formData.date,
           paymentMethod: formData.paymentMethod,
           receipt: formData.receipt
         });
