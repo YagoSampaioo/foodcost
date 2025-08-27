@@ -1,22 +1,24 @@
 import React from 'react';
-import { Calculator, Package, ChefHat, DollarSign, TrendingUp, LogOut, User } from 'lucide-react';
+import { Calculator, Package, ChefHat, DollarSign, TrendingUp, LogOut, User, Link, Users, Lock } from 'lucide-react';
 import { AuthUser } from '../types';
 
 interface LayoutProps {
   children: React.ReactNode;
-  currentPage: 'dashboard' | 'insumos' | 'produtos' | 'despesas' | 'vendas';
-  onPageChange: (page: 'dashboard' | 'insumos' | 'produtos' | 'despesas' | 'vendas') => void;
+  currentPage: 'dashboard' | 'insumos' | 'produtos' | 'despesas' | 'vendas' | 'integracao' | 'crm';
+  onPageChange: (page: 'dashboard' | 'insumos' | 'produtos' | 'despesas' | 'vendas' | 'integracao' | 'crm') => void;
   currentUser: AuthUser;
   onLogout: () => void;
 }
 
 export default function Layout({ children, currentPage, onPageChange, currentUser, onLogout }: LayoutProps) {
   const navigationItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: Calculator },
-    { id: 'insumos', label: 'Insumos', icon: Package },
-    { id: 'produtos', label: 'Produtos', icon: ChefHat },
-    { id: 'despesas', label: 'Despesas', icon: DollarSign },
-    { id: 'vendas', label: 'Vendas', icon: TrendingUp }
+    { id: 'dashboard', label: 'Dashboard', icon: Calculator, blocked: false },
+    { id: 'insumos', label: 'Insumos', icon: Package, blocked: false },
+    { id: 'produtos', label: 'Produtos', icon: ChefHat, blocked: false },
+    { id: 'despesas', label: 'Despesas', icon: DollarSign, blocked: false },
+    { id: 'vendas', label: 'Vendas', icon: TrendingUp, blocked: false },
+    { id: 'integracao', label: 'Integrações', icon: Link, blocked: true },
+    { id: 'crm', label: 'CRM', icon: Users, blocked: true }
   ];
 
   return (
@@ -40,6 +42,21 @@ export default function Layout({ children, currentPage, onPageChange, currentUse
               const Icon = item.icon;
               const isActive = currentPage === item.id;
               
+              if (item.blocked) {
+                return (
+                  <div
+                    key={item.id}
+                    className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg cursor-not-allowed opacity-60"
+                  >
+                    <div className="flex items-center">
+                      <Icon className="h-5 w-5 mr-3 text-orange-400" />
+                      <span className="text-orange-500">{item.label}</span>
+                    </div>
+                    <Lock className="h-4 w-4 text-orange-500" />
+                  </div>
+                );
+              }
+              
               return (
                 <button
                   key={item.id}
@@ -51,7 +68,7 @@ export default function Layout({ children, currentPage, onPageChange, currentUse
                   }`}
                 >
                   <Icon className="h-5 w-5 mr-3" />
-                  {item.label}
+                  <span>{item.label}</span>
                 </button>
               );
             })}

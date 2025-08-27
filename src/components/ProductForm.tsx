@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, ChefHat } from 'lucide-react';
 import { Product, RawMaterial, FixedExpense, VariableExpense, Sale } from '../types';
+import { formatNumber, formatSimpleCurrency, formatPercentage } from '../utils/formatters';
 
 interface ProductFormProps {
   products: Product[];
@@ -370,18 +371,18 @@ export default function ProductForm({
                   <option value="">Selecione um insumo</option>
                   {rawMaterials.map(material => (
                     <option key={material.id} value={material.id}>
-                      {material.name} - R$ {material.unitPrice.toFixed(2)}/{material.measurementUnit}
+                      {material.name} - R$ {formatSimpleCurrency(material.unitPrice)}/{material.measurementUnit}
                     </option>
                   ))}
                 </select>
               </div>
               
-              <div>
+          <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Quantidade
-                </label>
+            </label>
                 <div className="flex space-x-2">
-                  <input
+            <input
                     type="number"
                     step="0.01"
                     min="0"
@@ -450,7 +451,7 @@ export default function ProductForm({
           <div className="bg-white p-3 rounded-lg">
             <span className="text-blue-600 font-medium">Faturamento Mensal:</span>
             <div className="text-lg font-bold text-green-600">
-              R$ {expenseData.monthlyRevenue.toFixed(2)}
+                              R$ {formatSimpleCurrency(expenseData.monthlyRevenue)}
             </div>
             <div className="text-xs text-gray-500 mt-1">
               Da página Vendas
@@ -459,7 +460,7 @@ export default function ProductForm({
           <div className="bg-white p-3 rounded-lg">
             <span className="text-blue-600 font-medium">Despesas Fixas:</span>
             <div className="text-lg font-bold text-red-600">
-              R$ {expenseData.monthlyFixedExpenses.toFixed(2)}
+                              R$ {formatSimpleCurrency(expenseData.monthlyFixedExpenses)}
             </div>
             <div className="text-xs text-gray-500 mt-1">
               Mensalizado
@@ -468,7 +469,7 @@ export default function ProductForm({
           <div className="bg-white p-3 rounded-lg">
             <span className="text-blue-600 font-medium">Despesas Variáveis:</span>
             <div className="text-lg font-bold text-red-600">
-              R$ {expenseData.monthlyVariableExpenses.toFixed(2)}
+                              R$ {formatSimpleCurrency(expenseData.monthlyVariableExpenses)}
             </div>
             <div className="text-xs text-gray-500 mt-1">
               Do mês atual
@@ -477,7 +478,7 @@ export default function ProductForm({
           <div className="bg-white p-3 rounded-lg">
             <span className="text-blue-600 font-medium">% Total Despesas:</span>
             <div className="text-lg font-bold text-orange-600">
-              {expenseData.totalExpensesPercentage.toFixed(1)}%
+                              {formatPercentage(expenseData.totalExpensesPercentage, 1)}
             </div>
             <div className="text-xs text-gray-500 mt-1">
               {expenseData.monthlyRevenue > 0 ? 'Baseado no faturamento' : 'Estimativa calculada'}
@@ -534,7 +535,7 @@ export default function ProductForm({
             />
           </div>
 
-                        <div>
+          <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Nome do Produto
                 </label>
@@ -620,7 +621,7 @@ export default function ProductForm({
                             {material?.name || 'Insumo não encontrado'}
                           </div>
                           <div className="text-sm text-gray-500">
-                            {ingredient.quantity} {material?.measurementUnit} × R$ {ingredient.unitPrice.toFixed(2)} = R$ {ingredient.totalCost.toFixed(2)}
+                            {ingredient.quantity} {material?.measurementUnit} × R$ {formatSimpleCurrency(ingredient.unitPrice)} = R$ {formatSimpleCurrency(ingredient.totalCost)}
         </div>
                     </div>
                       <button
@@ -635,7 +636,7 @@ export default function ProductForm({
                   })}
                   <div className="p-3 bg-blue-50 rounded-lg">
                     <div className="text-sm font-medium text-blue-900">
-                      Custo Total dos Insumos: R$ {calculateRecipeCost().toFixed(2)}
+                      Custo Total dos Insumos: R$ {formatSimpleCurrency(calculateRecipeCost())}
                     </div>
         </div>
       </div>
@@ -669,13 +670,13 @@ export default function ProductForm({
               />
             </div>
 
-                        <div>
+            <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Preço Sugerido (R$) <span className="text-orange-600">*Calculado Automaticamente</span>
               </label>
               <div className="relative">
-                <input
-                  type="number"
+              <input
+                type="number"
                   value={suggestedPrice}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-700 cursor-not-allowed"
                   readOnly
@@ -688,8 +689,8 @@ export default function ProductForm({
               <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                 <p className="text-xs text-blue-800 font-medium mb-1">📊 Como é calculado:</p>
                 <div className="text-xs text-blue-700 space-y-1">
-                  <div>• <strong>Custo dos Insumos:</strong> R$ {recipeCost.toFixed(2)}</div>
-                  <div>• <strong>% Despesas:</strong> {expenseData.totalExpensesPercentage.toFixed(1)}%</div>
+                  <div>• <strong>Custo dos Insumos:</strong> R$ {formatSimpleCurrency(recipeCost)}</div>
+                                      <div>• <strong>% Despesas:</strong> {formatPercentage(expenseData.totalExpensesPercentage, 1)}</div>
                   <div>• <strong>Margem de Lucro:</strong> {formData.marginPercentage}%</div>
                   <div className="mt-2 pt-2 border-t border-blue-200">
                     <strong>Fórmula:</strong> (Custos + Despesas) × (1 + {formData.marginPercentage}%)
@@ -734,20 +735,20 @@ export default function ProductForm({
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
                   <div>
                     <span className="text-gray-600">Custo dos Insumos:</span>
-                    <span className="ml-2 font-medium">R$ {recipeCost.toFixed(2)}</span>
+                    <span className="ml-2 font-medium">R$ {formatSimpleCurrency(recipeCost)}</span>
                   </div>
             <div>
                     <span className="text-gray-600">% Despesas Fixas:</span>
-                    <span className="ml-2 font-medium text-blue-600">{expenseData.fixedExpensesPercentage.toFixed(1)}%</span>
+                    <span className="ml-2 font-medium text-blue-600">{formatPercentage(expenseData.fixedExpensesPercentage, 1)}</span>
             </div>
             <div>
                     <span className="text-gray-600">% Despesas Variáveis:</span>
-                    <span className="ml-2 font-medium text-blue-600">{expenseData.variableExpensesPercentage.toFixed(1)}%</span>
+                    <span className="ml-2 font-medium text-blue-600">{formatPercentage(expenseData.variableExpensesPercentage, 1)}</span>
             </div>
                   <div>
                     <span className="text-gray-600">Lucro/Prejuízo:</span>
                     <span className={`ml-2 font-medium ${profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      R$ {profit.toFixed(2)}
+                      R$ {formatSimpleCurrency(profit)}
                     </span>
           </div>
         </div>
@@ -755,13 +756,13 @@ export default function ProductForm({
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-gray-700">Margem de Lucro:</span>
                     <span className={`text-sm font-bold ${profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {formData.sellingPrice > 0 ? ((profit / formData.sellingPrice) * 100).toFixed(1) : '0'}%
+                      {formData.sellingPrice > 0 ? formatPercentage((profit / formData.sellingPrice) * 100, 1) : '0%'}
                     </span>
             </div>
                                     <div className="mt-2 text-xs text-gray-500">
-                    Baseado no faturamento de {new Date(selectedMonth + '-01').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}: R$ {expenseData.monthlyRevenue.toFixed(2)} (da página Vendas) e despesas totais de {expenseData.totalExpensesPercentage.toFixed(1)}%
-                  </div>
-        </div>
+                    Baseado no faturamento de {new Date(selectedMonth + '-01').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}: R$ {formatSimpleCurrency(expenseData.monthlyRevenue)} (da página Vendas) e despesas totais de {formatPercentage(expenseData.totalExpensesPercentage, 1)}
+            </div>
+          </div>
         <div className="mt-3 p-2 bg-blue-100 rounded text-xs text-blue-700">
           <strong>ℹ️ Nota:</strong> Esta análise é baseada nos dados de vendas e despesas de {new Date(selectedMonth + '-01').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}. 
           Use o seletor de mês no resumo financeiro acima para analisar diferentes períodos.
@@ -877,17 +878,17 @@ export default function ProductForm({
                       {product.portionYield} {product.portionUnit}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      R$ {productRecipeCost.toFixed(2)}
+                      R$ {formatSimpleCurrency(productRecipeCost)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      R$ {(product.sellingPrice || 0).toFixed(2)}
+                      R$ {formatSimpleCurrency(product.sellingPrice || 0)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600">
-                      R$ {productSuggestedPrice.toFixed(2)}
+                      R$ {formatSimpleCurrency(productSuggestedPrice)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <span className={`${productProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        R$ {productProfit.toFixed(2)}
+                        R$ {formatSimpleCurrency(productProfit)}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">

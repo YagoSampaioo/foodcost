@@ -5,15 +5,33 @@ import RawMaterialsForm from './components/RawMaterialsForm';
 import ProductForm from './components/ProductForm';
 import ExpensesForm from './components/ExpensesForm';
 import SalesForm from './components/SalesForm';
+import IntegrationForm from './components/IntegrationForm';
 import Auth from './components/Auth';
 import { Product, RawMaterial, FixedExpense, VariableExpense, Sale, AuthUser, RawMaterialPurchase, EmployeeCost } from './types';
+import { Users, Lock } from 'lucide-react';
 import { authService } from './services/authService';
 import { supabaseService } from './services/supabaseService';
 
 function App() {
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState<'dashboard' | 'insumos' | 'produtos' | 'despesas' | 'vendas'>('dashboard');
+  const [currentPage, setCurrentPage] = useState<'dashboard' | 'insumos' | 'produtos' | 'despesas' | 'vendas' | 'integracao' | 'crm'>('dashboard');
+  
+  // Função para verificar se uma página está bloqueada
+  const isPageBlocked = (page: string) => {
+    return page === 'integracao' || page === 'crm';
+  };
+  
+  // Função para mudar de página com verificação de bloqueio
+  const handlePageChange = (page: 'dashboard' | 'insumos' | 'produtos' | 'despesas' | 'vendas' | 'integracao' | 'crm') => {
+    if (isPageBlocked(page)) {
+      // Mostrar mensagem de que a página está bloqueada
+      const pageName = page === 'integracao' ? 'Integrações' : 'CRM';
+      alert(`🚫 ${pageName} - Funcionalidade Bloqueada\n\nEsta funcionalidade está temporariamente indisponível.\n\nEntre em contato com o suporte para mais informações sobre quando estará disponível.`);
+      return; // Não muda a página
+    }
+    setCurrentPage(page);
+  };
   const [products, setProducts] = useState<Product[]>([]);
   const [rawMaterials, setRawMaterials] = useState<RawMaterial[]>([]);
   const [fixedExpenses, setFixedExpenses] = useState<FixedExpense[]>([]);
@@ -468,6 +486,35 @@ function App() {
           onUpdateSale={handleUpdateSale}
           onDeleteSale={handleDeleteSale}
         />;
+      case 'integracao': 
+        return <IntegrationForm 
+          currentUser={currentUser}
+        />;
+              case 'crm':
+        return <div className="max-w-6xl mx-auto p-6">
+          <div className="bg-white rounded-lg shadow-lg p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 bg-purple-100 rounded-lg">
+                <Users className="h-6 w-6 text-purple-600" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-gray-800">Sistema CRM</h2>
+                <p className="text-gray-600">Gestão completa de relacionamento com clientes</p>
+              </div>
+            </div>
+            
+            <div className="text-center py-12">
+              <Lock className="mx-auto h-16 w-16 text-orange-400" />
+              <h3 className="mt-4 text-lg font-medium text-gray-900">Funcionalidade bloqueada</h3>
+              <p className="mt-2 text-gray-600">
+                O sistema CRM está temporariamente indisponível.
+              </p>
+              <p className="mt-1 text-sm text-gray-500">
+                Entre em contato com o suporte para mais informações.
+              </p>
+            </div>
+          </div>
+        </div>;
       default: 
         return <Dashboard 
           products={products} 
@@ -512,12 +559,12 @@ function App() {
 
   // Se estiver autenticado, mostrar aplicação principal
   return (
-    <Layout 
-      currentPage={currentPage} 
-      onPageChange={setCurrentPage}
-      currentUser={currentUser}
-      onLogout={handleLogout}
-    >
+                    <Layout 
+          currentPage={currentPage} 
+          onPageChange={handlePageChange} 
+          currentUser={currentUser} 
+          onLogout={handleLogout}
+        >
       {renderCurrentPage()}
     </Layout>
   );

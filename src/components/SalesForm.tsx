@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Sale } from '../types';
+import { formatCurrency, formatNumber } from '../utils/formatters';
 
 interface SalesFormProps {
   sales: Sale[];
@@ -121,12 +122,7 @@ const SalesForm: React.FC<SalesFormProps> = ({
     }
   };
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(value);
-  };
+
 
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat('pt-BR').format(date);

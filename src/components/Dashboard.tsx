@@ -17,6 +17,7 @@ import {
   Award
 } from 'lucide-react';
 import { Product, Sale, RawMaterial, FixedExpense, VariableExpense, RawMaterialPurchase, EmployeeCost } from '../types';
+import { formatCurrency, formatNumber, formatPercentage } from '../utils/formatters';
 
 interface DashboardProps {
   products: Product[];
@@ -39,16 +40,7 @@ export default function Dashboard({
 }: DashboardProps) {
   // Garantir que employeeCosts seja sempre um array
   const safeEmployeeCosts = employeeCosts || [];
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(value);
-  };
 
-  const formatPercentage = (value: number) => {
-    return `${value.toFixed(2)}%`;
-  };
 
   const formatDate = (date: Date | undefined) => {
     if (!date) return 'Data não disponível';
@@ -410,7 +402,7 @@ export default function Dashboard({
               </p>
             </div>
           </div>
-        </div>
+      </div>
 
         {/* Break-even */}
         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
@@ -510,19 +502,19 @@ export default function Dashboard({
         {safeEmployeeCosts.length > 0 && (
           <div className="mt-6">
             <h4 className="font-medium text-gray-900 mb-3">Detalhamento por Funcionário</h4>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Profissional</th>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Salário</th>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Encargos</th>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">FGTS</th>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Férias + 13º</th>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Total Mensal</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
                   {safeEmployeeCosts.map((employee) => {
                     const totalMonthly = 
                       employee.averageSalary + 
@@ -756,14 +748,14 @@ export default function Dashboard({
             
             <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
               <span className="text-sm font-medium text-gray-700">Rentabilidade</span>
-              <div className="flex items-center">
+                      <div className="flex items-center">
                 {getPerformanceIcon(profitability, 15)}
                 <span className="text-lg font-bold text-gray-900 ml-2">{formatPercentage(profitability)}</span>
               </div>
             </div>
-          </div>
-        </div>
-      </div>
+                      </div>
+                        </div>
+                      </div>
 
       {/* ===================================================== */}
       {/* PRODUTOS E VENDAS RECENTES */}

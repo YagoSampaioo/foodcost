@@ -1,0 +1,26 @@
+{
+  "name": "foodcost-ifood-proxy",
+  "version": "1.0.0",
+  "description": "Proxy server para integração com iFood API",
+  "main": "proxy.js",
+  "scripts": {
+    "start": "node proxy.js",
+    "dev": "nodemon proxy.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["ifood", "api", "proxy", "cors", "foodcost"],
+  "author": "FoodCost Team",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "axios": "^1.6.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
+

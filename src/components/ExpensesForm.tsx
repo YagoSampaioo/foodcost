@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Plus, Edit, Trash2, Calendar, DollarSign, TrendingUp, Package, Users } from 'lucide-react';
 import { FixedExpense, VariableExpense, RawMaterialPurchase, RawMaterial, EmployeeCost } from '../types';
+import { formatNumber, formatSimpleCurrency } from '../utils/formatters';
 
 interface ExpensesFormProps {
   fixedExpenses: FixedExpense[];
@@ -483,7 +484,7 @@ export default function ExpensesForm({
             <div className="ml-3">
               <p className="text-sm font-medium text-gray-600">Despesas Fixas Mensais</p>
               <p className="text-2xl font-bold text-gray-900">
-                R$ {totalMonthlyFixedExpenses.toFixed(2)}
+                R$ {formatSimpleCurrency(totalMonthlyFixedExpenses)}
               </p>
             </div>
           </div>
@@ -495,7 +496,7 @@ export default function ExpensesForm({
             <div className="ml-3">
               <p className="text-sm font-medium text-gray-600">Despesas Fixas Anuais</p>
               <p className="text-2xl font-bold text-gray-900">
-                R$ {totalAnnualFixedExpenses.toFixed(2)}
+                R$ {formatSimpleCurrency(totalAnnualFixedExpenses)}
               </p>
             </div>
           </div>
@@ -507,7 +508,7 @@ export default function ExpensesForm({
             <div className="ml-3">
               <p className="text-sm font-medium text-gray-600">Despesas Variáveis Este Mês</p>
               <p className="text-2xl font-bold text-gray-900">
-                R$ {totalMonthVariableExpenses.toFixed(2)}
+                R$ {formatSimpleCurrency(totalMonthVariableExpenses)}
               </p>
             </div>
           </div>
@@ -629,7 +630,7 @@ export default function ExpensesForm({
                           {expense.category}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          R$ {expense.amount.toFixed(2)}
+                          R$ {formatSimpleCurrency(expense.amount)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {frequencies.find(f => f.value === expense.frequency)?.label}
@@ -638,7 +639,7 @@ export default function ExpensesForm({
                           {expense.dueDate}º do mês
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          R$ {calculateAnnualCost(expense).toFixed(2)}
+                          R$ {formatSimpleCurrency(calculateAnnualCost(expense))}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
@@ -728,7 +729,7 @@ export default function ExpensesForm({
                           {expense.category}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          R$ {expense.amount.toFixed(2)}
+                          R$ {formatSimpleCurrency(expense.amount)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {formatDate(expense.expenseDate)}
@@ -1038,10 +1039,10 @@ export default function ExpensesForm({
                             {purchase.quantity} {material?.measurementUnit || 'un'}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            R$ {purchase.unitPrice.toFixed(2)}
+                            R$ {formatSimpleCurrency(purchase.unitPrice)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            R$ {purchase.totalCost.toFixed(2)}
+                            R$ {formatSimpleCurrency(purchase.totalCost)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             {formatDate(purchase.purchaseDate)}
@@ -1386,40 +1387,40 @@ export default function ExpensesForm({
                             {employeeCost.professional}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            R$ {employeeCost.hourlyCost.toFixed(2)}
+                            R$ {formatSimpleCurrency(employeeCost.hourlyCost)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            R$ {employeeCost.averageSalary.toFixed(2)}
+                            R$ {formatSimpleCurrency(employeeCost.averageSalary)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            R$ {employeeCost.benefits.toFixed(2)}
+                            R$ {formatSimpleCurrency(employeeCost.benefits)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            R$ {employeeCost.fgts.toFixed(2)}
+                            R$ {formatSimpleCurrency(employeeCost.fgts)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            R$ {employeeCost.vacationAllowance.toFixed(2)}
+                            R$ {formatSimpleCurrency(employeeCost.vacationAllowance)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            R$ {employeeCost.vacationBonus.toFixed(2)}
+                            R$ {formatSimpleCurrency(employeeCost.vacationBonus)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            R$ {employeeCost.fgtsVacationBonus.toFixed(2)}
+                            R$ {formatSimpleCurrency(employeeCost.fgtsVacationBonus)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            R$ {employeeCost.thirteenthSalary.toFixed(2)}
+                            R$ {formatSimpleCurrency(employeeCost.thirteenthSalary)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            R$ {employeeCost.fgtsThirteenth.toFixed(2)}
+                            R$ {formatSimpleCurrency(employeeCost.fgtsThirteenth)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            R$ {employeeCost.noticePeriod.toFixed(2)}
+                            R$ {formatSimpleCurrency(employeeCost.noticePeriod)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            R$ {employeeCost.fgtsNoticePeriod.toFixed(2)}
+                            R$ {formatSimpleCurrency(employeeCost.fgtsNoticePeriod)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            R$ {employeeCost.fgtsPenalty.toFixed(2)}
+                            R$ {formatSimpleCurrency(employeeCost.fgtsPenalty)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <div className="flex space-x-2">

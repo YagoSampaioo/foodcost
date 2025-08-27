@@ -1,6 +1,7 @@
 import React from 'react';
 import { ShoppingCart, Package } from 'lucide-react';
 import { RawMaterial, RawMaterialPurchase } from '../types';
+import { formatSimpleCurrency } from '../utils/formatters';
 
 interface RawMaterialsFormProps {
   rawMaterials: RawMaterial[];
@@ -94,10 +95,10 @@ const RawMaterialsForm: React.FC<RawMaterialsFormProps> = ({
                       {purchase.quantity}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      R$ {purchase.unitPrice.toFixed(2)}
+                      R$ {formatSimpleCurrency(purchase.unitPrice)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      R$ {purchase.totalCost.toFixed(2)}
+                      R$ {formatSimpleCurrency(purchase.totalCost)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {new Date(purchase.purchaseDate).toLocaleDateString('pt-BR')}
