@@ -31,7 +31,8 @@ export default function ProductForm({
   const [newIngredient, setNewIngredient] = useState({
     rawMaterialId: '',
     quantity: 0,
-    measurementUnit: ''
+    measurementUnit: '',
+    selectedUnit: '' // Nova propriedade para unidade selecionada
   });
   const [formData, setFormData] = useState({
     name: '',
@@ -49,7 +50,52 @@ export default function ProductForm({
     }>
   });
 
-  // Removido: newIngredient não é mais necessário
+  // Função para converter unidades de medida
+  const convertUnit = (value: number, fromUnit: string, toUnit: string): number => {
+    // Se as unidades são iguais, não há conversão
+    if (fromUnit === toUnit) return value;
+    
+    // Conversões de peso
+    if (fromUnit === 'kg' && toUnit === 'g') return value * 1000;
+    if (fromUnit === 'g' && toUnit === 'kg') return value / 1000;
+    if (fromUnit === 'kg' && toUnit === 'mg') return value * 1000000;
+    if (fromUnit === 'mg' && toUnit === 'kg') return value / 1000000;
+    if (fromUnit === 'g' && toUnit === 'mg') return value * 1000;
+    if (fromUnit === 'mg' && toUnit === 'g') return value / 1000;
+    
+    // Conversões de volume
+    if (fromUnit === 'l' && toUnit === 'ml') return value * 1000;
+    if (fromUnit === 'ml' && toUnit === 'l') return value / 1000;
+    if (fromUnit === 'l' && toUnit === 'cl') return value * 100;
+    if (fromUnit === 'cl' && toUnit === 'l') return value / 100;
+    
+    // Conversões de comprimento
+    if (fromUnit === 'm' && toUnit === 'cm') return value * 100;
+    if (fromUnit === 'cm' && toUnit === 'm') return value / 100;
+    if (fromUnit === 'm' && toUnit === 'mm') return value * 1000;
+    if (fromUnit === 'mm' && toUnit === 'm') return value / 1000;
+    
+    // Se não há conversão conhecida, retornar o valor original
+    return value;
+  };
+
+  // Função para obter unidades disponíveis baseadas na unidade do insumo
+  const getAvailableUnits = (baseUnit: string): string[] => {
+    const unitGroups = {
+      weight: ['kg', 'g', 'mg'],
+      volume: ['l', 'ml', 'cl'],
+      length: ['m', 'cm', 'mm'],
+      unit: ['unidade', 'pç', 'kg', 'g', 'l', 'ml']
+    };
+    
+    // Determinar o grupo da unidade base
+    let group = 'unit';
+    if (['kg', 'g', 'mg'].includes(baseUnit)) group = 'weight';
+    else if (['l', 'ml', 'cl'].includes(baseUnit)) group = 'volume';
+    else if (['m', 'cm', 'mm'].includes(baseUnit)) group = 'length';
+    
+    return unitGroups[group as keyof typeof unitGroups];
+  };
 
 
 
@@ -240,10 +286,19 @@ export default function ProductForm({
     if (newIngredient.rawMaterialId && newIngredient.quantity > 0) {
       const selectedMaterial = rawMaterials.find(m => m.id === newIngredient.rawMaterialId);
       if (selectedMaterial) {
-        const totalCost = selectedMaterial.unitPrice * newIngredient.quantity;
+        // Converter a quantidade para a unidade base do insumo para cálculo correto
+        const convertedQuantity = convertUnit(
+          newIngredient.quantity, 
+          newIngredient.selectedUnit || selectedMaterial.measurementUnit, 
+          selectedMaterial.measurementUnit
+        );
+        
+        const totalCost = selectedMaterial.unitPrice * convertedQuantity;
         const ingredient = {
           rawMaterialId: newIngredient.rawMaterialId,
-          quantity: newIngredient.quantity,
+          quantity: newIngredient.quantity, // Quantidade na unidade selecionada
+          selectedUnit: newIngredient.selectedUnit || selectedMaterial.measurementUnit, // Unidade selecionada
+          baseUnit: selectedMaterial.measurementUnit, // Unidade base do insumo
           unitPrice: selectedMaterial.unitPrice,
           totalCost: totalCost
         };
@@ -256,7 +311,8 @@ export default function ProductForm({
         setNewIngredient({
           rawMaterialId: '',
           quantity: 0,
-          measurementUnit: ''
+          measurementUnit: '',
+          selectedUnit: ''
         });
         setIsIngredientsModalOpen(false);
       }
@@ -377,12 +433,12 @@ export default function ProductForm({
                 </select>
               </div>
               
-          <div>
+                        <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Quantidade
-            </label>
+                </label>
                 <div className="flex space-x-2">
-            <input
+                  <input
                     type="number"
                     step="0.01"
                     min="0"
@@ -395,12 +451,28 @@ export default function ProductForm({
                       });
                     }}
                     className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-              required
-            />
-                  <span className="px-3 py-2 text-gray-500 bg-gray-100 rounded-md">
-                    {newIngredient.measurementUnit || 'unidade'}
-                  </span>
+                    required
+                  />
+                  <select
+                    value={newIngredient.selectedUnit || newIngredient.measurementUnit}
+                    onChange={(e) => setNewIngredient({
+                      ...newIngredient,
+                      selectedUnit: e.target.value
+                    })}
+                    className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white"
+                  >
+                    {newIngredient.measurementUnit && getAvailableUnits(newIngredient.measurementUnit).map(unit => (
+                      <option key={unit} value={unit}>
+                        {unit}
+                      </option>
+                    ))}
+                  </select>
                 </div>
+                {newIngredient.rawMaterialId && newIngredient.selectedUnit && newIngredient.selectedUnit !== newIngredient.measurementUnit && (
+                  <p className="text-xs text-blue-600 mt-1">
+                    💡 Convertendo de {newIngredient.selectedUnit} para {newIngredient.measurementUnit} automaticamente
+                  </p>
+                )}
               </div>
 
               <div className="flex justify-end space-x-3">
@@ -411,7 +483,8 @@ export default function ProductForm({
                     setNewIngredient({
                       rawMaterialId: '',
                       quantity: 0,
-                      measurementUnit: ''
+                      measurementUnit: '',
+                      selectedUnit: ''
                     });
                   }}
                   className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
@@ -620,9 +693,14 @@ export default function ProductForm({
                           <div className="font-medium text-gray-900">
                             {material?.name || 'Insumo não encontrado'}
                           </div>
-                          <div className="text-sm text-gray-500">
-                            {ingredient.quantity} {material?.measurementUnit} × R$ {formatSimpleCurrency(ingredient.unitPrice)} = R$ {formatSimpleCurrency(ingredient.totalCost)}
-        </div>
+                                                    <div className="text-sm text-gray-500">
+                            {ingredient.quantity} {(ingredient as any).selectedUnit || material?.measurementUnit} × R$ {formatSimpleCurrency(ingredient.unitPrice)} = R$ {formatSimpleCurrency(ingredient.totalCost)}
+                            {(ingredient as any).selectedUnit && (ingredient as any).selectedUnit !== material?.measurementUnit && (
+                              <span className="text-blue-600 ml-2">
+                                (convertido de {(ingredient as any).selectedUnit} para {material?.measurementUnit})
+                              </span>
+                            )}
+                          </div>
                     </div>
                       <button
                         type="button"
