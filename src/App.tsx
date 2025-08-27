@@ -450,10 +450,12 @@ function App() {
       case 'produtos': 
         return <ProductForm 
           products={products}
-          rawMaterials={rawMaterials} 
+          rawMaterials={rawMaterials}
+          rawMaterialPurchases={rawMaterialPurchases}
           fixedExpenses={fixedExpenses}
           variableExpenses={variableExpenses}
           sales={sales}
+          currentUser={currentUser}
           onAddProduct={handleAddProduct}
           onUpdateProduct={handleUpdateProduct}
           onDeleteProduct={handleDeleteProduct}
