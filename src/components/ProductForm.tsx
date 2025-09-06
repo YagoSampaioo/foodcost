@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from "react";
-import { Plus, Edit, Trash2, ChefHat } from "lucide-react";
-import { Product, ProductIngredient } from "../types";
-import { formatNumber, formatSimpleCurrency, formatPercentage } from "../utils/formatters";
-import { useData } from "../hooks/useData";
-import { useAuth } from "../hooks/useAuth";
+import React, { useState, useEffect } from 'react';
+import { Plus, Edit, Trash2, ChefHat } from 'lucide-react';
+import { Product, ProductIngredient } from '../types';
+import { formatNumber, formatSimpleCurrency, formatPercentage } from '../utils/formatters';
+import { useData } from '../hooks/useData';
+import { useAuth } from '../hooks/useAuth';
 
 export default function ProductForm() {
   const {
@@ -17,7 +17,7 @@ export default function ProductForm() {
     updateProduct,
     deleteProduct,
     addIngredient,
-    deleteIngredient,
+    deleteIngredient
   } = useData();
   const { currentUser } = useAuth();
 
@@ -26,19 +26,19 @@ export default function ProductForm() {
 
   // Novo: estado simples para inputs de ingrediente (insumo + quantidade)
   const [newIngredient, setNewIngredient] = useState({
-    raw_material_id: "",
-    quantity: 0,
+    raw_material_id: '',
+    quantity: 0
   });
 
   const [formData, setFormData] = useState({
-    name: "",
-    category: "",
-    description: "",
+    name: '',
+    category: '',
+    description: '',
     portion_yield: 1,
-    portion_unit: "porções",
+    portion_unit: 'porções',
     selling_price: 0,
     margin_percentage: 30,
-    product_ingredients: [] as ProductIngredient[],
+    product_ingredients: [] as ProductIngredient[]
   });
 
   // ===== Utilidades =====
@@ -47,7 +47,7 @@ export default function ProductForm() {
     if (!rawMaterialPurchases || rawMaterialPurchases.length === 0) return 0;
 
     const materialPurchases = rawMaterialPurchases
-      .filter((purchase) => (purchase.raw_material_id || purchase.raw_material_id) === rawMaterialId)
+      .filter(purchase => (purchase.raw_material_id || purchase.raw_material_id) === rawMaterialId)
       .sort(
         (a, b) =>
           new Date(b.purchase_date || b.purchase_date).getTime() -
@@ -62,19 +62,19 @@ export default function ProductForm() {
     if (sales && sales.length > 0) {
       const mostRecentSale = sales[0];
       const saleDate = new Date(mostRecentSale.sale_date || mostRecentSale.sale_date);
-      return `${saleDate.getFullYear()}-${String(saleDate.getMonth() + 1).padStart(2, "0")}`;
+      return `${saleDate.getFullYear()}-${String(saleDate.getMonth() + 1).padStart(2, '0')}`;
     }
     const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   });
 
   const calculateExpensePercentages = () => {
-    const [year, month] = selectedMonth.split("-").map(Number);
+    const [year, month] = selectedMonth.split('-').map(Number);
     const targetMonth = month - 1;
 
     const monthlyRevenue = sales
       ? sales
-          .filter((sale) => {
+          .filter(sale => {
             if (!sale.sale_date && !sale.sale_date) return false;
             const saleDate = new Date(sale.sale_date || sale.sale_date);
             return saleDate.getMonth() === targetMonth && saleDate.getFullYear() === year;
@@ -84,18 +84,18 @@ export default function ProductForm() {
 
     const monthlyFixedExpenses = fixedExpenses
       ? fixedExpenses
-          .filter((expense) => expense.is_active || expense.is_active)
+          .filter(expense => expense.is_active || expense.is_active)
           .reduce((sum, expense) => {
             const amount = expense.amount;
             const frequency = expense.frequency;
             switch (frequency) {
-              case "mensal":
+              case 'mensal':
                 return sum + amount;
-              case "trimestral":
+              case 'trimestral':
                 return sum + amount / 3;
-              case "semestral":
+              case 'semestral':
                 return sum + amount / 6;
-              case "anual":
+              case 'anual':
                 return sum + amount / 12;
               default:
                 return sum + amount;
@@ -105,7 +105,7 @@ export default function ProductForm() {
 
     const monthlyVariableExpenses = variableExpenses
       ? variableExpenses
-          .filter((expense) => {
+          .filter(expense => {
             if (!expense.expense_date && !expense.expense_date) return false;
             const expenseDate = new Date(expense.expense_date || expense.expense_date);
             return expenseDate.getMonth() === targetMonth && expenseDate.getFullYear() === year;
@@ -140,7 +140,7 @@ export default function ProductForm() {
       totalMonthlyExpenses,
       fixedExpensesPercentage,
       variableExpensesPercentage,
-      totalExpensesPercentage,
+      totalExpensesPercentage
     };
   };
 
@@ -207,7 +207,7 @@ export default function ProductForm() {
             raw_material_id: ing.raw_material_id,
             quantity: ing.quantity,
             unit: ing.unit,
-            total_cost: ing.total_cost,
+            total_cost: ing.total_cost
           });
         }
       }
@@ -221,53 +221,53 @@ export default function ProductForm() {
     setFormData({
       name: product.name,
       category: product.category,
-      description: product.description || "",
+      description: product.description || '',
       portion_yield: product.portion_yield,
       portion_unit: product.portion_unit,
       selling_price: product.selling_price,
       margin_percentage: product.margin_percentage,
-      product_ingredients: product.product_ingredients || [],
+      product_ingredients: product.product_ingredients || []
     });
     setIsFormOpen(true);
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm("Tem certeza que deseja excluir este produto?")) {
+    if (window.confirm('Tem certeza que deseja excluir este produto?')) {
       await deleteProduct(id);
     }
   };
 
   const resetForm = () => {
     setFormData({
-      name: "",
-      category: "",
-      description: "",
+      name: '',
+      category: '',
+      description: '',
       portion_yield: 1,
-      portion_unit: "porções",
+      portion_unit: 'porções',
       selling_price: 0,
       margin_percentage: 30,
-      product_ingredients: [],
+      product_ingredients: []
     });
     setEditingProduct(null);
-    setNewIngredient({ raw_material_id: "", quantity: 0 });
+    setNewIngredient({ raw_material_id: '', quantity: 0 });
   };
 
   // Adicionar ingrediente: agora chamado pelo botão "Adicionar" (sem modal)
   const handleAddIngredient = async () => {
     if (!newIngredient.raw_material_id || newIngredient.quantity <= 0) return;
-    const selectedMaterial = rawMaterials.find((m) => m.id === newIngredient.raw_material_id);
+    const selectedMaterial = rawMaterials.find(m => m.id === newIngredient.raw_material_id);
     if (!selectedMaterial) return;
 
     const realUnitPrice = getLatestPurchasePrice(newIngredient.raw_material_id);
 
     const ingredientData: ProductIngredient = {
       id: (globalThis.crypto?.randomUUID?.() || `temp-${Math.random().toString(36).slice(2)}`) as string,
-      product_id: editingProduct ? editingProduct.id : "temp",
+      product_id: editingProduct ? editingProduct.id : 'temp',
       raw_material_id: newIngredient.raw_material_id,
       quantity: newIngredient.quantity,
       unit: selectedMaterial.measurement_unit,
       total_cost: newIngredient.quantity * realUnitPrice,
-      raw_materials: selectedMaterial,
+      raw_materials: selectedMaterial
     };
 
     if (editingProduct) {
@@ -276,29 +276,29 @@ export default function ProductForm() {
         raw_material_id: ingredientData.raw_material_id,
         quantity: ingredientData.quantity,
         unit: ingredientData.unit,
-        total_cost: ingredientData.total_cost,
+        total_cost: ingredientData.total_cost
       });
     } else {
       // Produto novo: apenas acumula localmente até salvar o produto
-      setFormData((prev) => ({
+      setFormData(prev => ({
         ...prev,
-        product_ingredients: [...prev.product_ingredients, ingredientData],
+        product_ingredients: [...prev.product_ingredients, ingredientData]
       }));
     }
 
-    setNewIngredient({ raw_material_id: "", quantity: 0 });
+    setNewIngredient({ raw_material_id: '', quantity: 0 });
   };
 
   // Remover ingrediente: se já existe no backend, chama deleteIngredient; se é temporário, remove do estado
   const handleRemoveIngredient = async (ingredient: ProductIngredient) => {
-    const isTemp = ingredient.product_id === "temp" || ingredient.id.startsWith("temp-");
+    const isTemp = ingredient.product_id === 'temp' || ingredient.id.startsWith('temp-');
     if (isTemp || !editingProduct) {
-      setFormData((prev) => ({
+      setFormData(prev => ({
         ...prev,
-        product_ingredients: prev.product_ingredients.filter((ing) => ing.id !== ingredient.id),
+        product_ingredients: prev.product_ingredients.filter(ing => ing.id !== ingredient.id)
       }));
     } else {
-      if (window.confirm("Remover este ingrediente?")) {
+      if (window.confirm('Remover este ingrediente?')) {
         await deleteIngredient(ingredient.id);
       }
     }
@@ -307,15 +307,15 @@ export default function ProductForm() {
   // Mantém lista de ingredientes sincronizada ao editar após add/remove no backend
   useEffect(() => {
     if (editingProduct) {
-      const updated = products.find((p) => p.id === editingProduct.id);
+      const updated = products.find(p => p.id === editingProduct.id);
       if (updated) {
-        setFormData((prev) => ({ ...prev, product_ingredients: updated.product_ingredients || [] }));
+        setFormData(prev => ({ ...prev, product_ingredients: updated.product_ingredients || [] }));
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [products]);
 
-  const selectedMaterial = rawMaterials.find((m) => m.id === newIngredient.raw_material_id);
+  const selectedMaterial = rawMaterials.find(m => m.id === newIngredient.raw_material_id);
 
   return (
     <div className="space-y-6">
@@ -337,7 +337,7 @@ export default function ProductForm() {
       <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">
           Resumo Financeiro do Mês (
-          {new Date(selectedMonth + "-01").toLocaleDateString("pt-BR", { month: "long", year: "numeric" })})
+          {new Date(selectedMonth + '-01').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })})
         </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
@@ -368,7 +368,7 @@ export default function ProductForm() {
           <input
             type="month"
             value={selectedMonth}
-            onChange={(e) => setSelectedMonth(e.target.value)}
+            onChange={e => setSelectedMonth(e.target.value)}
             className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
           />
         </div>
@@ -391,7 +391,7 @@ export default function ProductForm() {
       {isFormOpen && (
         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            {editingProduct ? `Editando: ${editingProduct.name}` : "Novo Produto"}
+            {editingProduct ? `Editando: ${editingProduct.name}` : 'Novo Produto'}
           </h3>
 
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -402,7 +402,7 @@ export default function ProductForm() {
                 <input
                   type="text"
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={e => setFormData({ ...formData, name: e.target.value })}
                   placeholder="Digite o nome do produto"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                   required
@@ -413,7 +413,7 @@ export default function ProductForm() {
                 <input
                   type="text"
                   value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  onChange={e => setFormData({ ...formData, category: e.target.value })}
                   placeholder="Ex: Bolos, Salgados, Bebidas"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                 />
@@ -424,7 +424,7 @@ export default function ProductForm() {
               <label className="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
               <textarea
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                onChange={e => setFormData({ ...formData, description: e.target.value })}
                 placeholder="Descrição do produto"
                 rows={3}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
@@ -439,7 +439,7 @@ export default function ProductForm() {
                   step="0.1"
                   min="0"
                   value={formData.portion_yield}
-                  onChange={(e) => setFormData({ ...formData, portion_yield: parseFloat(e.target.value) || 1 })}
+                  onChange={e => setFormData({ ...formData, portion_yield: parseFloat(e.target.value) || 1 })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                 />
               </div>
@@ -448,7 +448,7 @@ export default function ProductForm() {
                 <input
                   type="text"
                   value={formData.portion_unit}
-                  onChange={(e) => setFormData({ ...formData, portion_unit: e.target.value })}
+                  onChange={e => setFormData({ ...formData, portion_unit: e.target.value })}
                   placeholder="Ex: porções, unidades, kg"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                 />
@@ -467,10 +467,10 @@ export default function ProductForm() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Insumo</label>
                   <select
                     value={newIngredient.raw_material_id}
-                    onChange={(e) => setNewIngredient({ ...newIngredient, raw_material_id: e.target.value })}
+                    onChange={e => setNewIngredient({ ...newIngredient, raw_material_id: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <option value="">Selecione um insumo</option>
-                    {rawMaterials.map((m) => (
+                    {rawMaterials.map(m => (
                       <option key={m.id} value={m.id}>
                         {m.name}
                       </option>
@@ -483,8 +483,8 @@ export default function ProductForm() {
                     type="number"
                     min="0"
                     step="0.01"
-                    value={newIngredient.quantity === 0 ? "" : newIngredient.quantity}
-                    onChange={(e) => setNewIngredient({ ...newIngredient, quantity: parseFloat(e.target.value) || 0 })}
+                    value={newIngredient.quantity === 0 ? '' : newIngredient.quantity}
+                    onChange={e => setNewIngredient({ ...newIngredient, quantity: parseFloat(e.target.value) || 0 })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
@@ -498,7 +498,7 @@ export default function ProductForm() {
                 </div>
                 {selectedMaterial && (
                   <div className="md:col-span-12 text-xs text-gray-500">
-                    Unidade base: <strong>{selectedMaterial.measurement_unit}</strong> • Preço unitário atual: R${" "}
+                    Unidade base: <strong>{selectedMaterial.measurement_unit}</strong> • Preço unitário atual: R${' '}
                     {formatSimpleCurrency(getLatestPurchasePrice(selectedMaterial.id))}
                   </div>
                 )}
@@ -507,13 +507,13 @@ export default function ProductForm() {
               {/* Lista de ingredientes */}
               {formData.product_ingredients && formData.product_ingredients.length > 0 ? (
                 <div className="space-y-3">
-                  {formData.product_ingredients.map((ingredient) => (
+                  {formData.product_ingredients.map(ingredient => (
                     <div key={ingredient.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                       <div className="flex-1">
-                        <div className="font-medium text-gray-900">{ingredient.raw_materials?.name || "Insumo"}</div>
+                        <div className="font-medium text-gray-900">{ingredient.raw_materials?.name || 'Insumo'}</div>
                         <div className="text-sm text-gray-500">
-                          {ingredient.quantity} {ingredient.unit} × R${" "}
-                          {formatSimpleCurrency(getLatestPurchasePrice(ingredient.raw_material_id))} = R${" "}
+                          {ingredient.quantity} {ingredient.unit} × R${' '}
+                          {formatSimpleCurrency(getLatestPurchasePrice(ingredient.raw_material_id))} = R${' '}
                           {formatSimpleCurrency(
                             ingredient.quantity * getLatestPurchasePrice(ingredient.raw_material_id)
                           )}
@@ -551,10 +551,10 @@ export default function ProductForm() {
                     type="number"
                     step="0.01"
                     min="0"
-                    value={formData.selling_price === 0 ? "" : formData.selling_price}
-                    onChange={(e) => {
+                    value={formData.selling_price === 0 ? '' : formData.selling_price}
+                    onChange={e => {
                       const value = e.target.value;
-                      setFormData({ ...formData, selling_price: value === "" ? 0 : parseFloat(value) || 0 });
+                      setFormData({ ...formData, selling_price: value === '' ? 0 : parseFloat(value) || 0 });
                     }}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                     required
@@ -594,7 +594,7 @@ export default function ProductForm() {
                   min="0"
                   max="100"
                   value={formData.margin_percentage}
-                  onChange={(e) => setFormData({ ...formData, margin_percentage: parseFloat(e.target.value) || 0 })}
+                  onChange={e => setFormData({ ...formData, margin_percentage: parseFloat(e.target.value) || 0 })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                 />
               </div>
@@ -613,7 +613,7 @@ export default function ProductForm() {
                   </div>
                   <div>
                     <span className="text-gray-600">Lucro Estimado:</span>
-                    <div className={`${profit >= 0 ? "text-green-600" : "text-red-600"} font-medium`}>
+                    <div className={`${profit >= 0 ? 'text-green-600' : 'text-red-600'} font-medium`}>
                       R$ {formatSimpleCurrency(profit)}
                     </div>
                   </div>
@@ -636,7 +636,7 @@ export default function ProductForm() {
               <button
                 type="submit"
                 className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors">
-                {editingProduct ? "Atualizar Produto" : "Criar Produto"}
+                {editingProduct ? 'Atualizar Produto' : 'Criar Produto'}
               </button>
             </div>
           </form>
@@ -680,19 +680,14 @@ export default function ProductForm() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {products.map((product) => {
-                const productRecipeCost = getProductRecipeCost(product);
-                const productExpensesCost = (product.selling_price || 0) * (expenseData.totalExpensesPercentage / 100);
-                const productProfit = (product.selling_price || 0) - productRecipeCost - productExpensesCost;
+              {products.map(product => {
+                const productRecipeCost = product.recipeCost || 0;
+                const productSuggestedPrice = product.suggestedPrice || 0;
+                const productProfit = product.grossMarginValue || 0;
 
-                let productSuggestedPrice = 0;
-                if (productRecipeCost > 0 && expenseData.totalExpensesPercentage < 100) {
-                  const basePrice = productRecipeCost / (1 - expenseData.totalExpensesPercentage / 100);
-                  productSuggestedPrice = basePrice * (1 + (product.margin_percentage || 30) / 100);
-                } else if (product.selling_price > 0) {
-                  productSuggestedPrice = (product.selling_price || 0) * (1 + (product.margin_percentage || 30) / 100);
-                }
-
+                console.log(`Custo dos insumos do ${product.name}: ${product.recipeCost}`);
+                console.log(`Margin Value do ${product.name}: ${product.grossMarginValue}`);
+                console.log(`Preço sugerido do ${product.name}:  ${product.suggestedPrice} `);
                 return (
                   <tr key={product.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -715,7 +710,7 @@ export default function ProductForm() {
                       R$ {formatSimpleCurrency(productSuggestedPrice)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <span className={`${productProfit >= 0 ? "text-green-600" : "text-red-600"}`}>
+                      <span className={`${productProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                         R$ {formatSimpleCurrency(productProfit)}
                       </span>
                     </td>

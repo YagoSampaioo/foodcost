@@ -61,8 +61,9 @@ export interface Product {
   portion_unit: string;
   selling_price: number;
   margin_percentage: number;
-  created_at: Date;
-  last_modified: Date;
+
+  created_at?: Date;
+  last_modified?: Date;
   product_ingredients: ProductIngredient[];
 }
 
@@ -89,7 +90,7 @@ export interface FixedExpense {
   name: string;
   category: string;
   amount: number;
-  frequency: "mensal" | "trimestral" | "semestral" | "anual";
+  frequency: 'mensal' | 'trimestral' | 'semestral' | 'anual';
   due_date: number;
   description?: string;
   is_active: boolean;

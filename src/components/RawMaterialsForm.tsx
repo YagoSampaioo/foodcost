@@ -1,18 +1,18 @@
-import { ShoppingCart } from "lucide-react";
-import { formatSimpleCurrency } from "../utils/formatters";
-import { useData } from "../hooks/useData";
+import { ShoppingCart } from 'lucide-react';
+import { formatSimpleCurrency } from '../utils/formatters';
+import { useData } from '../hooks/useData';
 
 export default function RawMaterialsForm() {
   const { rawMaterials, rawMaterialPurchases } = useData();
-  const purchases = rawMaterialPurchases; // Renomeando para manter o código existente
+  const purchases = rawMaterialPurchases;
 
   const getMaterialName = (rawMaterialId: string) => {
-    const material = rawMaterials.find((rm) => rm.id === rawMaterialId);
-    return material ? material.name : "Insumo não encontrado";
+    const material = rawMaterials.find(rm => rm.id === rawMaterialId);
+    return material ? material.name : 'Insumo não encontrado';
   };
 
   const sortedPurchases = purchases.sort(
-    (a, b) => new Date(b.purchaseDate).getTime() - new Date(a.purchaseDate).getTime()
+    (a, b) => new Date(b.purchase_date).getTime() - new Date(a.purchase_date).getTime()
   );
 
   return (
@@ -71,23 +71,23 @@ export default function RawMaterialsForm() {
                   </td>
                 </tr>
               ) : (
-                sortedPurchases.map((purchase) => (
+                sortedPurchases.map(purchase => (
                   <tr key={purchase.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {getMaterialName(purchase.rawMaterialId)}
+                      {getMaterialName(purchase.raw_material_id)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{purchase.quantity}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      R$ {formatSimpleCurrency(purchase.unitPrice)}
+                      R$ {formatSimpleCurrency(purchase.unit_price)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      R$ {formatSimpleCurrency(purchase.totalCost)}
+                      R$ {formatSimpleCurrency(purchase.total_cost)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(purchase.purchaseDate).toLocaleDateString("pt-BR", { timeZone: "UTC" })}
+                      {new Date(purchase.purchase_date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{purchase.supplier}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{purchase.paymentMethod}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{purchase.payment_method}</td>
                   </tr>
                 ))
               )}

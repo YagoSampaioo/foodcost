@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from "react";
-import { formatCurrency } from "../utils/formatters";
-import { useData } from "../hooks/useData";
-import { Sale } from "../types";
+import React, { useState, useEffect } from 'react';
+import { formatCurrency } from '../utils/formatters';
+import { useData } from '../hooks/useData';
+import { Sale } from '../types';
 
 export default function SalesForm() {
   const { sales, addSale, updateSale, deleteSale } = useData();
@@ -9,7 +9,7 @@ export default function SalesForm() {
   // Filtrar vendas do mês selecionado (padrão: mês com vendas mais recentes)
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   });
 
   // Atualizar o mês selecionado quando as vendas carregarem
@@ -17,10 +17,10 @@ export default function SalesForm() {
     if (sales.length > 0) {
       const mostRecentSale = sales[0]; // sales já vem ordenado por data desc
       const saleDate = new Date(mostRecentSale.sale_date);
-      const recentMonth = `${saleDate.getFullYear()}-${String(saleDate.getMonth() + 1).padStart(2, "0")}`;
+      const recentMonth = `${saleDate.getFullYear()}-${String(saleDate.getMonth() + 1).padStart(2, '0')}`;
 
       // Só atualizar se o mês atual não tem vendas
-      const currentMonthHasSales = sales.some((sale) => {
+      const currentMonthHasSales = sales.some(sale => {
         const currentSaleDate = new Date(sale.sale_date);
         const currentMonth = new Date();
         return (
@@ -36,9 +36,9 @@ export default function SalesForm() {
   }, [sales]);
 
   const getCurrentMonthSales = () => {
-    const [year, month] = selectedMonth.split("-").map(Number);
+    const [year, month] = selectedMonth.split('-').map(Number);
 
-    return sales.filter((sale) => {
+    return sales.filter(sale => {
       if (!sale.sale_date) return false;
 
       const saleDate = new Date(sale.sale_date);
@@ -53,20 +53,32 @@ export default function SalesForm() {
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
-    date: new Date().toISOString().split("T")[0],
-    total_sales: "",
-    number_of_orders: "",
-    average_ticket: "",
-    notes: "",
+    date: new Date().toISOString().split('T')[0],
+    total_sales: '',
+    number_of_orders: '',
+    average_ticket: '',
+    notes: ''
   });
+
+  useEffect(() => {
+    const totalSales = parseFloat(formData.total_sales) || 0;
+    const numberOfOrders = parseInt(formData.number_of_orders, 10) || 0;
+
+    if (totalSales > 0 && numberOfOrders > 0) {
+      const avgTicket = totalSales / numberOfOrders;
+      setFormData(prev => ({ ...prev, average_ticket: avgTicket.toFixed(2) }));
+    } else {
+      setFormData(prev => ({ ...prev, average_ticket: '' }));
+    }
+  }, [formData.total_sales, formData.number_of_orders]);
 
   const resetForm = () => {
     setFormData({
-      date: new Date().toISOString().split("T")[0],
-      total_sales: "",
-      number_of_orders: "",
-      average_ticket: "",
-      notes: "",
+      date: new Date().toISOString().split('T')[0],
+      total_sales: '',
+      number_of_orders: '',
+      average_ticket: '',
+      notes: ''
     });
     setEditingId(null);
     setIsAdding(false);
@@ -76,7 +88,7 @@ export default function SalesForm() {
     e.preventDefault();
 
     if (!formData.date || !formData.total_sales || !formData.number_of_orders) {
-      alert("Por favor, preencha todos os campos obrigatórios");
+      alert('Por favor, preencha todos os campos obrigatórios');
       return;
     }
 
@@ -85,7 +97,7 @@ export default function SalesForm() {
       total_sales: parseFloat(formData.total_sales),
       number_of_orders: parseInt(formData.number_of_orders),
       average_ticket: formData.average_ticket ? parseFloat(formData.average_ticket) : 0,
-      notes: formData.notes || undefined,
+      notes: formData.notes || undefined
     };
 
     try {
@@ -96,30 +108,30 @@ export default function SalesForm() {
       }
       resetForm();
     } catch (error) {
-      console.error("Erro ao salvar venda:", error);
+      console.error('Erro ao salvar venda:', error);
     }
   };
 
   const handleEdit = (sale: Sale) => {
     setEditingId(sale.id);
     setFormData({
-      date: new Date(sale.sale_date).toISOString().split("T")[0],
+      date: new Date(sale.sale_date).toISOString().split('T')[0],
       total_sales: sale.total_sales.toString(),
       number_of_orders: sale.number_of_orders.toString(),
       average_ticket: sale.average_ticket.toString(),
-      notes: sale.notes || "",
+      notes: sale.notes || ''
     });
     setIsAdding(true);
   };
 
   const handleDelete = (id: string) => {
-    if (window.confirm("Tem certeza que deseja excluir esta venda?")) {
+    if (window.confirm('Tem certeza que deseja excluir esta venda?')) {
       deleteSale(id);
     }
   };
 
   const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC" }).format(new Date(date));
+    return new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC' }).format(new Date(date));
   };
 
   return (
@@ -127,14 +139,14 @@ export default function SalesForm() {
       <div className="bg-white rounded-lg shadow-lg p-6">
         <div className="flex justify-between items-center mb-6">
           <div>
-            <h2 className="text-2xl font-bold text-gray-800">{editingId ? "Editar Venda" : "Gerenciar Vendas"}</h2>
+            <h2 className="text-2xl font-bold text-gray-800">{editingId ? 'Editar Venda' : 'Gerenciar Vendas'}</h2>
             <div className="flex flex-col gap-2">
               <p className="text-sm text-gray-600">
-                Mostrando vendas de{" "}
-                {new Date(selectedMonth + "-02").toLocaleDateString("pt-BR", {
-                  month: "long",
-                  year: "numeric",
-                  timeZone: "UTC",
+                Mostrando vendas de{' '}
+                {new Date(selectedMonth + '-02').toLocaleDateString('pt-BR', {
+                  month: 'long',
+                  year: 'numeric',
+                  timeZone: 'UTC'
                 })}
               </p>
               <div className="flex items-center gap-2">
@@ -142,7 +154,7 @@ export default function SalesForm() {
                 <input
                   type="month"
                   value={selectedMonth}
-                  onChange={(e) => setSelectedMonth(e.target.value)}
+                  onChange={e => setSelectedMonth(e.target.value)}
                   className="px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
@@ -151,9 +163,9 @@ export default function SalesForm() {
           <button
             onClick={() => setIsAdding(!isAdding)}
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              isAdding ? "bg-gray-500 text-white hover:bg-gray-600" : "bg-blue-600 text-white hover:bg-blue-700"
+              isAdding ? 'bg-gray-500 text-white hover:bg-gray-600' : 'bg-blue-600 text-white hover:bg-blue-700'
             }`}>
-            {isAdding ? "Cancelar" : "Nova Venda"}
+            {isAdding ? 'Cancelar' : 'Nova Venda'}
           </button>
         </div>
 
@@ -165,7 +177,7 @@ export default function SalesForm() {
                 <input
                   type="date"
                   value={formData.date}
-                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                  onChange={e => setFormData({ ...formData, date: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 />
@@ -178,7 +190,7 @@ export default function SalesForm() {
                   step="0.01"
                   min="0"
                   value={formData.total_sales}
-                  onChange={(e) => setFormData({ ...formData, total_sales: e.target.value })}
+                  onChange={e => setFormData({ ...formData, total_sales: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="0.00"
                   required
@@ -191,7 +203,7 @@ export default function SalesForm() {
                   type="number"
                   min="1"
                   value={formData.number_of_orders}
-                  onChange={(e) => setFormData({ ...formData, number_of_orders: e.target.value })}
+                  onChange={e => setFormData({ ...formData, number_of_orders: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="0"
                   required
@@ -199,15 +211,19 @@ export default function SalesForm() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Ticket Médio (R$)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Ticket Médio (R$) <span className="text-[0.6rem] text-indigo-500">* Calculado automaticamente *</span>
+                </label>
                 <input
                   type="number"
                   step="0.01"
                   min="0"
                   value={formData.average_ticket}
-                  onChange={(e) => setFormData({ ...formData, average_ticket: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onChange={e => setFormData({ ...formData, average_ticket: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg disabled:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="0.00"
+                  readOnly
+                  disabled
                 />
               </div>
 
@@ -215,7 +231,7 @@ export default function SalesForm() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Observações</label>
                 <textarea
                   value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  onChange={e => setFormData({ ...formData, notes: e.target.value })}
                   rows={3}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Observações sobre a venda..."
@@ -233,7 +249,7 @@ export default function SalesForm() {
               <button
                 type="submit"
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                {editingId ? "Atualizar" : "Salvar"}
+                {editingId ? 'Atualizar' : 'Salvar'}
               </button>
             </div>
           </form>
@@ -243,7 +259,7 @@ export default function SalesForm() {
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-semibold text-gray-800">Histórico de Vendas</h3>
             <span className="text-sm text-gray-600">
-              {currentMonthSales.length} venda{currentMonthSales.length !== 1 ? "s" : ""} este mês
+              {currentMonthSales.length} venda{currentMonthSales.length !== 1 ? 's' : ''} este mês
             </span>
           </div>
 
@@ -279,7 +295,7 @@ export default function SalesForm() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {currentMonthSales.map((sale) => (
+                  {currentMonthSales.map(sale => (
                     <tr key={sale.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {formatDate(sale.sale_date)}
@@ -291,7 +307,7 @@ export default function SalesForm() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {formatCurrency(sale.average_ticket)}
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">{sale.notes || "-"}</td>
+                      <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">{sale.notes || '-'}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex space-x-2">
                           <button
@@ -318,10 +334,10 @@ export default function SalesForm() {
           <div className="mt-6 bg-blue-50 rounded-lg p-4">
             <h4 className="text-lg font-semibold text-blue-800 mb-3">
               Resumo do Mês (
-              {new Date(selectedMonth + "-02").toLocaleDateString("pt-BR", {
-                month: "long",
-                year: "numeric",
-                timeZone: "UTC",
+              {new Date(selectedMonth + '-02').toLocaleDateString('pt-BR', {
+                month: 'long',
+                year: 'numeric',
+                timeZone: 'UTC'
               })}
               )
             </h4>
