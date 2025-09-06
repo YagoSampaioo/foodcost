@@ -1,55 +1,40 @@
-import React from 'react';
-import { ShoppingCart, Package } from 'lucide-react';
-import { RawMaterial, RawMaterialPurchase } from '../types';
-import { formatSimpleCurrency } from '../utils/formatters';
+import { ShoppingCart } from "lucide-react";
+import { formatSimpleCurrency } from "../utils/formatters";
+import { useData } from "../hooks/useData";
 
-interface RawMaterialsFormProps {
-  rawMaterials: RawMaterial[];
-  purchases: RawMaterialPurchase[];
-}
+export default function RawMaterialsForm() {
+  const { rawMaterials, rawMaterialPurchases } = useData();
+  const purchases = rawMaterialPurchases; // Renomeando para manter o código existente
 
-const RawMaterialsForm: React.FC<RawMaterialsFormProps> = ({
-  rawMaterials,
-  purchases
-}) => {
   const getMaterialName = (rawMaterialId: string) => {
-    const material = rawMaterials.find(rm => rm.id === rawMaterialId);
-    return material ? material.name : 'Insumo não encontrado';
+    const material = rawMaterials.find((rm) => rm.id === rawMaterialId);
+    return material ? material.name : "Insumo não encontrado";
   };
 
-  const sortedPurchases = purchases
-    .sort((a, b) => new Date(b.purchaseDate).getTime() - new Date(a.purchaseDate).getTime());
+  const sortedPurchases = purchases.sort(
+    (a, b) => new Date(b.purchaseDate).getTime() - new Date(a.purchaseDate).getTime()
+  );
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
             <ShoppingCart className="h-6 w-6" />
             Compras de Insumos
           </h2>
-          <p className="text-gray-600 mt-1">
-            Visualize o histórico de compras de insumos
-          </p>
+          <p className="text-gray-600 mt-1">Visualize o histórico de compras de insumos</p>
         </div>
-        <div className="text-sm text-gray-500 bg-gray-100 px-3 py-2 rounded-lg">
-          Modo de Visualização
-        </div>
+        <div className="text-sm text-gray-500 bg-gray-100 px-3 py-2 rounded-lg">Modo de Visualização</div>
       </div>
 
-
-
-      {/* Compras Recentes de Insumos */}
       <div className="bg-white rounded-lg shadow">
         <div className="px-6 py-4 border-b border-gray-200">
           <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
             <ShoppingCart className="h-5 w-5" />
             Histórico de Compras
           </h3>
-          <p className="text-sm text-gray-600 mt-1">
-            Todas as compras de insumos registradas
-          </p>
+          <p className="text-sm text-gray-600 mt-1">Todas as compras de insumos registradas</p>
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
@@ -91,9 +76,7 @@ const RawMaterialsForm: React.FC<RawMaterialsFormProps> = ({
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {getMaterialName(purchase.rawMaterialId)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {purchase.quantity}
-                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{purchase.quantity}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       R$ {formatSimpleCurrency(purchase.unitPrice)}
                     </td>
@@ -101,14 +84,10 @@ const RawMaterialsForm: React.FC<RawMaterialsFormProps> = ({
                       R$ {formatSimpleCurrency(purchase.totalCost)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(purchase.purchaseDate).toLocaleDateString('pt-BR')}
+                      {new Date(purchase.purchaseDate).toLocaleDateString("pt-BR", { timeZone: "UTC" })}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {purchase.supplier}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {purchase.paymentMethod}
-                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{purchase.supplier}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{purchase.paymentMethod}</td>
                   </tr>
                 ))
               )}
@@ -118,6 +97,4 @@ const RawMaterialsForm: React.FC<RawMaterialsFormProps> = ({
       </div>
     </div>
   );
-};
-
-export default RawMaterialsForm;
+}
