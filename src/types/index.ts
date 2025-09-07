@@ -61,10 +61,13 @@ export interface Product {
   portion_unit: string;
   selling_price: number;
   margin_percentage: number;
+  recipeCost: number;
+  suggestedPrice: number;
+  grossMarginValue: number;
 
   created_at?: Date;
   last_modified?: Date;
-  product_ingredients: ProductIngredient[];
+  ingredients: ProductIngredient[];
 }
 
 /**

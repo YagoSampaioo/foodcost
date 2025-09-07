@@ -3,7 +3,6 @@ import { Plus, Edit, Trash2, ChefHat } from 'lucide-react';
 import { Product, ProductIngredient } from '../types';
 import { formatNumber, formatSimpleCurrency, formatPercentage } from '../utils/formatters';
 import { useData } from '../hooks/useData';
-import { useAuth } from '../hooks/useAuth';
 
 export default function ProductForm() {
   const {
@@ -19,7 +18,6 @@ export default function ProductForm() {
     addIngredient,
     deleteIngredient
   } = useData();
-  const { currentUser } = useAuth();
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -146,15 +144,6 @@ export default function ProductForm() {
 
   const expenseData = calculateExpensePercentages();
 
-  const getProductRecipeCost = (product: Product): number => {
-    if (!product.product_ingredients || product.product_ingredients.length === 0) return 0;
-    return product.product_ingredients.reduce((sum, ing) => {
-      const quantity = ing.quantity || 0;
-      const unitPrice = ing.raw_materials?.unit_price || 0;
-      return sum + quantity * unitPrice;
-    }, 0);
-  };
-
   // Custo da receita do formulário (usa o preço mais recente de compra)
   const calculateRecipeCost = () => {
     return formData.product_ingredients.reduce((total, ingredient) => {
@@ -226,7 +215,7 @@ export default function ProductForm() {
       portion_unit: product.portion_unit,
       selling_price: product.selling_price,
       margin_percentage: product.margin_percentage,
-      product_ingredients: product.product_ingredients || []
+      product_ingredients: product.ingredients || []
     });
     setIsFormOpen(true);
   };
@@ -309,7 +298,7 @@ export default function ProductForm() {
     if (editingProduct) {
       const updated = products.find(p => p.id === editingProduct.id);
       if (updated) {
-        setFormData(prev => ({ ...prev, product_ingredients: updated.product_ingredients || [] }));
+        setFormData(prev => ({ ...prev, product_ingredients: updated.ingredients || [] }));
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -684,10 +673,8 @@ export default function ProductForm() {
                 const productRecipeCost = product.recipeCost || 0;
                 const productSuggestedPrice = product.suggestedPrice || 0;
                 const productProfit = product.grossMarginValue || 0;
+                console.log(product);
 
-                console.log(`Custo dos insumos do ${product.name}: ${product.recipeCost}`);
-                console.log(`Margin Value do ${product.name}: ${product.grossMarginValue}`);
-                console.log(`Preço sugerido do ${product.name}:  ${product.suggestedPrice} `);
                 return (
                   <tr key={product.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">

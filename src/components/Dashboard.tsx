@@ -10,10 +10,10 @@ import {
   PieChart,
   Activity,
   ShoppingCart,
-  Award,
-} from "lucide-react";
-import { formatCurrency, formatPercentage } from "../utils/formatters";
-import { useData } from "../hooks/useData";
+  Award
+} from 'lucide-react';
+import { formatCurrency, formatPercentage } from '../utils/formatters';
+import { useData } from '../hooks/useData';
 
 export default function Dashboard() {
   const { products, sales, rawMaterials, fixedExpenses, variableExpenses, employeeCosts } = useData();
@@ -21,8 +21,8 @@ export default function Dashboard() {
   const safeEmployeeCosts = employeeCosts || [];
 
   const formatDate = (date: Date | undefined) => {
-    if (!date) return "Data não disponível";
-    return new Date(date).toLocaleDateString("pt-BR");
+    if (!date) return 'Data não disponível';
+    return new Date(date).toLocaleDateString('pt-BR');
   };
 
   // =====================================================
@@ -33,7 +33,7 @@ export default function Dashboard() {
     const currentMonth = new Date().getMonth();
     const currentYear = new Date().getFullYear();
 
-    return sales.filter((sale) => {
+    return sales.filter(sale => {
       if (!sale.sale_date) return false;
       const saleDate = new Date(sale.sale_date);
       return saleDate.getMonth() === currentMonth && saleDate.getFullYear() === currentYear;
@@ -43,7 +43,7 @@ export default function Dashboard() {
   const getCurrentYearSales = () => {
     const currentYear = new Date().getFullYear();
 
-    return sales.filter((sale) => {
+    return sales.filter(sale => {
       if (!sale.sale_date) return false;
       const saleDate = new Date(sale.sale_date);
       return saleDate.getFullYear() === currentYear;
@@ -63,7 +63,7 @@ export default function Dashboard() {
     const currentMonth = new Date().getMonth();
     const currentYear = new Date().getFullYear();
 
-    return variableExpenses.filter((expense) => {
+    return variableExpenses.filter(expense => {
       const expenseDate = new Date(expense.expense_date);
       return expenseDate.getMonth() === currentMonth && expenseDate.getFullYear() === currentYear;
     });
@@ -74,7 +74,7 @@ export default function Dashboard() {
   const calculateCMV = () => {
     let totalCMV = 0;
 
-    products.forEach((product) => {
+    products.forEach(product => {
       if (product.ingredients && product.ingredients.length > 0) {
         const productCost = product.ingredients.reduce((sum, ingredient) => {
           return sum + ingredient.total_cost;
@@ -95,19 +95,19 @@ export default function Dashboard() {
   const calculateCMO = () => {
     let totalCMO = 0;
 
-    fixedExpenses.forEach((expense) => {
+    fixedExpenses.forEach(expense => {
       if (expense.is_active) {
         switch (expense.frequency) {
-          case "mensal":
+          case 'mensal':
             totalCMO += expense.amount;
             break;
-          case "trimestral":
+          case 'trimestral':
             totalCMO += expense.amount / 3;
             break;
-          case "semestral":
+          case 'semestral':
             totalCMO += expense.amount / 6;
             break;
-          case "anual":
+          case 'anual':
             totalCMO += expense.amount / 12;
             break;
         }
@@ -117,14 +117,14 @@ export default function Dashboard() {
     const currentMonth = new Date().getMonth();
     const currentYear = new Date().getFullYear();
 
-    variableExpenses.forEach((expense) => {
+    variableExpenses.forEach(expense => {
       const expenseDate = new Date(expense.expense_date);
       if (expenseDate.getMonth() === currentMonth && expenseDate.getFullYear() === currentYear) {
         totalCMO += expense.amount;
       }
     });
 
-    safeEmployeeCosts.forEach((employee) => {
+    safeEmployeeCosts.forEach(employee => {
       const monthlyEmployeeCost =
         employee.average_salary +
         employee.benefits +
@@ -153,7 +153,7 @@ export default function Dashboard() {
 
   const totalRawMaterials = rawMaterials.length;
   const lowStockMaterials = rawMaterials.filter(
-    (material) => (material.current_stock || 0) <= (material.minimum_stock || 0)
+    material => (material.current_stock || 0) <= (material.minimum_stock || 0)
   );
 
   const totalInventoryCost = rawMaterials.reduce(
@@ -164,7 +164,7 @@ export default function Dashboard() {
   const recentProducts = products
     .sort(
       (a, b) =>
-        new Date(b.last_modified || b.created_at).getTime() - new Date(a.last_modified || a.created_at).getTime()
+        new Date(b.last_modified! || b.created_at).getTime() - new Date(a.last_modified! || a.created_at).getTime()
     )
     .slice(0, 5);
 
@@ -173,9 +173,9 @@ export default function Dashboard() {
     .slice(0, 5);
 
   const getPerformanceColor = (value: number, target: number) => {
-    if (value >= target) return "text-green-600";
-    if (value >= target * 0.8) return "text-yellow-600";
-    return "text-red-600";
+    if (value >= target) return 'text-green-600';
+    if (value >= target * 0.8) return 'text-yellow-600';
+    return 'text-red-600';
   };
 
   const getPerformanceIcon = (value: number, target: number) => {
@@ -186,7 +186,7 @@ export default function Dashboard() {
 
   const calculateProductMargins = () => {
     return products
-      .map((product) => {
+      .map(product => {
         // Calcula o custo total dos ingredientes do produto
         const totalCost =
           product.ingredients?.reduce((sum, ingredient) => {
@@ -201,10 +201,10 @@ export default function Dashboard() {
           ...product,
           total_cost: totalCost,
           margin_value: marginValue,
-          margin_percentage: margin_percentage,
+          margin_percentage: margin_percentage
         };
       })
-      .filter((product) => product.selling_price > 0); // Remove produtos sem preço definido
+      .filter(product => product.selling_price > 0); // Remove produtos sem preço definido
   };
 
   const productsWithMargins = calculateProductMargins();
@@ -216,7 +216,7 @@ export default function Dashboard() {
 
   // Produtos com baixa margem (menor que 40%)
   const lowMarginProducts = productsWithMargins
-    .filter((product) => (product.margin_percentage || 0) < 40)
+    .filter(product => (product.margin_percentage || 0) < 40)
     .sort((a, b) => (a.margin_percentage || 0) - (b.margin_percentage || 0))
     .slice(0, 5);
 
@@ -227,21 +227,21 @@ export default function Dashboard() {
   const getProductsByCategory = () => {
     const categories = {};
 
-    productsWithMargins.forEach((product) => {
-      const category = product.category || "Sem categoria";
+    productsWithMargins.forEach(product => {
+      const category = product.category || 'Sem categoria';
       if (!categories[category]) {
         categories[category] = {
           name: category,
           products: [],
           totalRevenue: 0,
-          averageMargin: 0,
+          averageMargin: 0
         };
       }
       categories[category].products.push(product);
     });
 
     // Calcula médias por categoria
-    Object.values(categories).forEach((category) => {
+    Object.values(categories).forEach(category => {
       const totalMargin = category.products.reduce((sum, p) => sum + (p.margin_percentage || 0), 0);
       category.averageMargin = totalMargin / category.products.length;
 
@@ -359,7 +359,7 @@ export default function Dashboard() {
               <div className="w-full bg-gray-200 rounded-full h-3">
                 <div
                   className={`h-3 rounded-full transition-all duration-300 ${
-                    profitability >= 15 ? "bg-green-500" : profitability >= 10 ? "bg-yellow-500" : "bg-red-500"
+                    profitability >= 15 ? 'bg-green-500' : profitability >= 10 ? 'bg-yellow-500' : 'bg-red-500'
                   }`}
                   style={{ width: `${Math.min(Math.max(profitability, 0), 100)}%` }}></div>
               </div>
@@ -381,12 +381,12 @@ export default function Dashboard() {
               <div className="w-full bg-gray-200 rounded-full h-3">
                 <div
                   className={`h-3 rounded-full transition-all duration-300 ${
-                    totalMonthSales >= breakEvenPoint ? "bg-green-500" : "bg-red-500"
+                    totalMonthSales >= breakEvenPoint ? 'bg-green-500' : 'bg-red-500'
                   }`}
                   style={{ width: `${Math.min((totalMonthSales / breakEvenPoint) * 100, 100)}%` }}></div>
               </div>
               <p className="text-xs text-gray-500 mt-2">
-                {totalMonthSales >= breakEvenPoint ? "✅ Lucrativo" : "❌ Prejuízo"}
+                {totalMonthSales >= breakEvenPoint ? '✅ Lucrativo' : '❌ Prejuízo'}
               </p>
             </div>
           </div>
@@ -410,16 +410,16 @@ export default function Dashboard() {
             <p className="text-2xl font-bold text-gray-900">
               {formatCurrency(
                 fixedExpenses
-                  .filter((expense) => expense.is_active)
+                  .filter(expense => expense.is_active)
                   .reduce((sum, expense) => {
                     switch (expense.frequency) {
-                      case "mensal":
+                      case 'mensal':
                         return sum + expense.amount;
-                      case "trimestral":
+                      case 'trimestral':
                         return sum + expense.amount / 3;
-                      case "semestral":
+                      case 'semestral':
                         return sum + expense.amount / 6;
-                      case "anual":
+                      case 'anual':
                         return sum + expense.amount / 12;
                       default:
                         return sum;
@@ -427,7 +427,7 @@ export default function Dashboard() {
                   }, 0)
               )}
             </p>
-            <p className="text-sm text-gray-500">{fixedExpenses.filter((e) => e.is_active).length} despesas ativas</p>
+            <p className="text-sm text-gray-500">{fixedExpenses.filter(e => e.is_active).length} despesas ativas</p>
           </div>
 
           {/* Despesas Variáveis */}
@@ -483,7 +483,7 @@ export default function Dashboard() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {safeEmployeeCosts.map((employee) => {
+                  {safeEmployeeCosts.map(employee => {
                     const totalMonthly =
                       employee.average_salary +
                       employee.benefits +
@@ -537,7 +537,7 @@ export default function Dashboard() {
           </h3>
           {productsByMargin.length > 0 ? (
             <div className="space-y-3">
-              {productsByMargin.map((product) => (
+              {productsByMargin.map(product => (
                 <div key={product.id} className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
                   <div>
                     <p className="text-sm font-medium text-gray-900">{product.name}</p>
@@ -568,7 +568,7 @@ export default function Dashboard() {
           </h3>
           {lowMarginProducts.length > 0 ? (
             <div className="space-y-3">
-              {lowMarginProducts.map((product) => (
+              {lowMarginProducts.map(product => (
                 <div key={product.id} className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
                   <div>
                     <p className="text-sm font-medium text-gray-900">{product.name}</p>
@@ -629,7 +629,7 @@ export default function Dashboard() {
           </h3>
           {lowStockMaterials.length > 0 ? (
             <div className="space-y-3">
-              {lowStockMaterials.slice(0, 5).map((material) => (
+              {lowStockMaterials.slice(0, 5).map(material => (
                 <div key={material.id} className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
                   <div>
                     <p className="text-sm font-medium text-gray-900">{material.name}</p>
@@ -729,14 +729,14 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Produtos Recentes */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+        {/* <div className="bg-white rounded-lg shadow-sm border border-gray-200">
           <div className="px-6 py-4 border-b border-gray-200">
             <h3 className="text-lg font-semibold text-gray-900">Produtos Recentes</h3>
           </div>
           <div className="p-6">
             {recentProducts.length > 0 ? (
               <div className="space-y-3">
-                {recentProducts.map((product) => (
+                {recentProducts.map(product => (
                   <div key={product.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div>
                       <p className="text-sm font-medium text-gray-900">{product.name}</p>
@@ -759,7 +759,7 @@ export default function Dashboard() {
               </div>
             )}
           </div>
-        </div>
+        </div> */}
 
         {/* Vendas Recentes */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
@@ -769,7 +769,7 @@ export default function Dashboard() {
           <div className="p-6">
             {recentSales.length > 0 ? (
               <div className="space-y-3">
-                {recentSales.map((sale) => (
+                {recentSales.map(sale => (
                   <div key={sale.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div>
                       <p className="text-sm font-medium text-gray-900">{formatDate(sale.sale_date)}</p>

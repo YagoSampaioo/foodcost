@@ -1,24 +1,24 @@
-import React from "react";
-import { Calculator, Package, ChefHat, DollarSign, TrendingUp, LogOut, User, Link, Users, Lock } from "lucide-react";
-import { AuthUser } from "../types";
+import React from 'react';
+import { Calculator, Package, ChefHat, DollarSign, TrendingUp, LogOut, User, Link, Users, Lock } from 'lucide-react';
+import { AuthUser } from '../types';
 
 interface LayoutProps {
   children: React.ReactNode;
-  currentPage: "dashboard" | "insumos" | "produtos" | "despesas" | "vendas" | "integracao" | "crm";
-  onPageChange: (page: "dashboard" | "insumos" | "produtos" | "despesas" | "vendas" | "integracao" | "crm") => void;
+  currentPage: 'dashboard' | 'insumos' | 'produtos' | 'despesas' | 'vendas' | 'integracao' | 'crm';
+  onPageChange: (page: 'dashboard' | 'insumos' | 'produtos' | 'despesas' | 'vendas' | 'integracao' | 'crm') => void;
   currentUser: AuthUser;
   onLogout: () => void;
 }
 
 export default function Layout({ children, currentPage, onPageChange, currentUser, onLogout }: LayoutProps) {
   const navigationItems = [
-    { id: "dashboard", label: "Dashboard", icon: Calculator, blocked: false },
-    { id: "insumos", label: "Insumos", icon: Package, blocked: false },
-    { id: "produtos", label: "Produtos", icon: ChefHat, blocked: false },
-    { id: "despesas", label: "Despesas", icon: DollarSign, blocked: false },
-    { id: "vendas", label: "Vendas", icon: TrendingUp, blocked: false },
-    { id: "integracao", label: "Integrações", icon: Link, blocked: false },
-    { id: "crm", label: "CRM", icon: Users, blocked: true },
+    { id: 'dashboard', label: 'Dashboard', icon: Calculator, blocked: false },
+    { id: 'insumos', label: 'Insumos', icon: Package, blocked: false },
+    { id: 'produtos', label: 'Produtos', icon: ChefHat, blocked: false },
+    { id: 'despesas', label: 'Despesas', icon: DollarSign, blocked: false },
+    { id: 'vendas', label: 'Vendas', icon: TrendingUp, blocked: false },
+    { id: 'integracao', label: 'Integrações', icon: Link, blocked: true },
+    { id: 'crm', label: 'CRM', icon: Users, blocked: true }
   ];
 
   return (
@@ -38,7 +38,7 @@ export default function Layout({ children, currentPage, onPageChange, currentUse
 
         <nav className="mt-8 px-4">
           <div className="space-y-2">
-            {navigationItems.map((item) => {
+            {navigationItems.map(item => {
               const Icon = item.icon;
               const isActive = currentPage === item.id;
 
@@ -62,8 +62,8 @@ export default function Layout({ children, currentPage, onPageChange, currentUse
                   onClick={() => onPageChange(item.id as any)}
                   className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
                     isActive
-                      ? "bg-orange-100 text-orange-700 border-r-2 border-orange-500"
-                      : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                      ? 'bg-orange-100 text-orange-700 border-r-2 border-orange-500'
+                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                   }`}>
                   <Icon className="h-5 w-5 mr-3" />
                   <span>{item.label}</span>
