@@ -1,234 +1,174 @@
-import { IFOOD_CONFIG, IfoodSalesResponse, IfoodSale, IfoodProduct, IfoodAuthResponse } from '../config/ifood';
+import { apiClient } from "../config/axios";
+import { IfoodSalesResponse } from "../types/ifood";
+
+// Tipos para clareza
+interface AuthResponse {
+  accessToken: string;
+  expiresIn: number;
+}
+interface Merchant {
+  id: string;
+  name: string;
+}
 
 class IfoodService {
   private accessToken: string | null = null;
-  private tokenExpiry: number | null = null;
 
-  /**
-   * Autentica com a API do iFood usando OAuth2 através do proxy local
-   */
-  async authenticate(clientId: string, clientSecret: string): Promise<boolean> {
+  constructor() {
+    this.loadTokenFromStorage();
+  }
+
+  private loadTokenFromStorage(): void {
+    const token = localStorage.getItem("ifood_access_token");
+    if (token) {
+      this.accessToken = token;
+    }
+  }
+
+  private setToken(token: string): void {
+    this.accessToken = token;
+    localStorage.setItem("ifood_access_token", token);
+  }
+
+  private clearToken(): void {
+    this.accessToken = null;
+    localStorage.removeItem("ifood_access_token");
+  }
+
+  private getAuthHeader() {
+    if (!this.accessToken) {
+      throw new Error("Token de acesso do iFood não encontrado.");
+    }
+    return {
+      Authorization: `Bearer ${this.accessToken}`,
+    };
+  }
+
+  public isConnected(): boolean {
+    return this.accessToken !== null;
+  }
+
+  public disconnect(): void {
+    this.clearToken();
+  }
+
+  async authenticate(): Promise<boolean> {
     try {
-      const response = await fetch('http://localhost:3001/api/ifood/auth', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          clientId,
-          clientSecret
-        })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`Erro na autenticação: ${response.status} - ${errorData.error || response.statusText}`);
+      const response = await apiClient.post<AuthResponse>("/ifood/auth");
+      if (response.data && response.data.accessToken) {
+        this.setToken(response.data.accessToken);
+        return true;
       }
+      return false;
+    } catch (error) {
+      console.error("Erro ao autenticar com a API iFood:", error);
+      this.clearToken();
+      throw error;
+    }
+  }
 
-      const authData: IfoodAuthResponse = await response.json();
-      
-      this.accessToken = authData.access_token;
-      this.tokenExpiry = Date.now() + (authData.expires_in * 1000);
-      
-      // Salvar token no localStorage para persistência
-      localStorage.setItem('ifood_access_token', this.accessToken);
-      localStorage.setItem('ifood_token_expiry', this.tokenExpiry.toString());
-      
+  async checkConnection(): Promise<boolean> {
+    try {
+      await apiClient.get("/ifood/check", { headers: this.getAuthHeader() });
       return true;
     } catch (error) {
-      console.error('Erro na autenticação com iFood:', error);
+      console.error("Falha na verificação de conexão com o iFood:", error);
       return false;
     }
   }
 
-  /**
-   * Verifica se o token está válido e renova se necessário
-   */
-  private async ensureValidToken(): Promise<boolean> {
-    // Verificar se o token expirou
-    if (this.tokenExpiry && Date.now() >= this.tokenExpiry) {
-      this.accessToken = null;
-      this.tokenExpiry = null;
-    }
-
-    // Tentar recuperar token do localStorage
-    if (!this.accessToken) {
-      const storedToken = localStorage.getItem('ifood_access_token');
-      const storedExpiry = localStorage.getItem('ifood_token_expiry');
-      
-      if (storedToken && storedExpiry) {
-        const expiry = parseInt(storedExpiry);
-        if (Date.now() < expiry) {
-          this.accessToken = storedToken;
-          this.tokenExpiry = expiry;
-        } else {
-          localStorage.removeItem('ifood_access_token');
-          localStorage.removeItem('ifood_token_expiry');
-        }
-      }
-    }
-
-    // Se ainda não tem token válido, tentar autenticar
-    if (!this.accessToken) {
-      return await this.authenticate(IFOOD_CONFIG.CLIENT_ID, IFOOD_CONFIG.CLIENT_SECRET);
-    }
-
-    return true;
-  }
-
-  /**
-   * Faz uma requisição autenticada para a API do iFood através do proxy local
-   */
-  private async makeAuthenticatedRequest(endpoint: string, options: RequestInit = {}): Promise<any> {
-    if (!(await this.ensureValidToken())) {
-      throw new Error('Falha na autenticação com iFood');
-    }
-
-    // Mapear endpoints para rotas do proxy
-    let proxyUrl = '';
-    let method = options.method || 'GET';
-    
-    if (endpoint.includes('/financial/v3.0/merchants/')) {
-      // Endpoint de vendas
-      const merchantId = endpoint.match(/\/merchants\/([^\/]+)/)?.[1];
-      const params = new URLSearchParams(endpoint.split('?')[1] || '');
-      proxyUrl = `http://localhost:3001/api/ifood/sales/${merchantId}?${params.toString()}`;
-    } else if (endpoint === '/merchant') {
-      // Endpoint de verificação de conexão
-      proxyUrl = 'http://localhost:3001/api/ifood/check';
-    } else {
-      // Para outros endpoints, usar diretamente
-      proxyUrl = `${IFOOD_CONFIG.BASE_URL}${endpoint}`;
-    }
-
-    const response = await fetch(proxyUrl, {
-      ...options,
-      method,
-      headers: {
-        ...IFOOD_CONFIG.DEFAULT_HEADERS,
-        'Authorization': `Bearer ${this.accessToken}`,
-        ...options.headers
-      }
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(`Erro na requisição para iFood: ${response.status} - ${errorData.error || response.statusText}`);
-    }
-
-    return await response.json();
-  }
-
-  /**
-   * Busca vendas do iFood para um merchant específico
-   */
-  async getSales(merchantId: string, beginDate: string, endDate: string, page: number = 1): Promise<IfoodSale[]> {
+  async getMerchants(): Promise<Merchant[]> {
     try {
-      const response: IfoodSalesResponse = await this.makeAuthenticatedRequest(
-        `/financial/v3.0/merchants/${merchantId}/sales?beginSalesDate=${beginDate}&endSalesDate=${endDate}&page=${page}`
-      );
-      return response.sales || [];
+      const response = await apiClient.get<Merchant[]>("/ifood/merchants", {
+        headers: this.getAuthHeader(),
+      });
+      return response.data;
     } catch (error) {
-      console.error('Erro ao buscar vendas do iFood:', error);
-      return [];
+      console.error("Erro ao buscar merchants:", error);
+      throw error;
     }
   }
 
-  /**
-   * Busca vendas do mês atual para um merchant específico
-   */
-  async getCurrentMonthSales(merchantId: string): Promise<IfoodSale[]> {
+  async getSales(
+    merchantId: string,
+    beginDate: string,
+    endDate: string,
+    page: number = 1
+  ): Promise<IfoodSalesResponse[]> {
+    try {
+      const response = await apiClient.get(`/ifood/sales/${merchantId}`, {
+        params: { beginDate, endDate, page },
+        headers: this.getAuthHeader(),
+      });
+      return response.data || [];
+    } catch (error) {
+      console.error("Erro ao buscar vendas do iFood:", error);
+      throw error;
+    }
+  }
+
+  async getCurrentMonthSales(merchantId: string): Promise<IfoodSalesResponse[]> {
     const now = new Date();
     const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    
-    const beginDate = firstDayOfMonth.toISOString().split('T')[0];
-    const endDate = lastDayOfMonth.toISOString().split('T')[0];
-    
+
+    const beginDate = firstDayOfMonth.toISOString().split("T")[0];
+    const endDate = lastDayOfMonth.toISOString().split("T")[0];
+
     return this.getSales(merchantId, beginDate, endDate, 1);
   }
-
-  /**
-   * Busca produtos do iFood
-   */
-  async getProducts(limit: number = 50, offset: number = 0): Promise<IfoodProduct[]> {
+  /* TODO's
+  // TODO: para um endpoint de produtos - MODULO CATALOG
+  async getProducts(merchantId: string, limit: number = 50, offset: number = 0): Promise<IfoodProduct[]> {
     try {
-      const response = await this.makeAuthenticatedRequest(
-        `/products?limit=${limit}&offset=${offset}`
-      );
-      return response.products || [];
-    } catch (error) {
-      console.error('Erro ao buscar produtos do iFood:', error);
-      return [];
-    }
-  }
-
-  /**
-   * Cria ou atualiza um produto no iFood
-   */
-  async upsertProduct(product: Partial<IfoodProduct>): Promise<IfoodProduct | null> {
-    try {
-      const method = product.id ? 'PUT' : 'POST';
-      const endpoint = product.id ? `/products/${product.id}` : '/products';
-      
-      const response = await this.makeAuthenticatedRequest(endpoint, {
-        method,
-        body: JSON.stringify(product)
+      // Supondo que você crie uma rota GET /ifood/merchants/:merchantId/products
+      const response = await apiClient.get(`/ifood/merchants/${merchantId}/products`, {
+        params: { limit, offset },
+        headers: this.getAuthHeader(),
       });
-      
-      return response;
+      return response.data.products || [];
     } catch (error) {
-      console.error('Erro ao criar/atualizar produto no iFood:', error);
-      return null;
+      console.error("Erro ao buscar produtos do iFood:", error);
+      throw error;
     }
   }
 
-  /**
-   * Atualiza o status de um pedido no iFood
-   */
+  // TODO: um endpoint de criar/atualizar produto - MODULO CATALOG
+  async upsertProduct(merchantId: string, product: Partial<IfoodProduct>): Promise<IfoodProduct> {
+    try {
+      const method = product.id ? "put" : "post";
+      const url = product.id
+        ? `/ifood/merchants/${merchantId}/products/${product.id}`
+        : `/ifood/merchants/${merchantId}/products`;
+
+      const response = await apiClient[method](url, product, {
+        headers: this.getAuthHeader(),
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Erro ao criar/atualizar produto no iFood:", error);
+      throw error;
+    }
+  }
+
+  // TODO: um endpoint de status de pedido - MODULO ORDER
   async updateOrderStatus(orderId: string, status: string): Promise<boolean> {
     try {
-      await this.makeAuthenticatedRequest(`/orders/${orderId}/status`, {
-        method: 'PATCH',
-        body: JSON.stringify({ status })
-      });
-      
+      // Supondo uma rota PATCH /ifood/orders/:orderId/status
+      await apiClient.patch(
+        `/ifood/orders/${orderId}/status`,
+        { status },
+        {
+          headers: this.getAuthHeader(),
+        }
+      );
       return true;
     } catch (error) {
-      console.error('Erro ao atualizar status do pedido no iFood:', error);
+      console.error("Erro ao atualizar status do pedido no iFood:", error);
       return false;
     }
   }
-
-  /**
-   * Verifica o status da conexão com iFood
-   */
-  async checkConnection(): Promise<boolean> {
-    try {
-      await this.makeAuthenticatedRequest('/merchant');
-      return true;
-    } catch (error) {
-      return false;
-    }
-  }
-
-  /**
-   * Desconecta do iFood (limpa tokens)
-   */
-  disconnect(): void {
-    this.accessToken = null;
-    this.tokenExpiry = null;
-    localStorage.removeItem('ifood_access_token');
-    localStorage.removeItem('ifood_token_expiry');
-  }
-
-  /**
-   * Verifica se está conectado ao iFood
-   */
-  isConnected(): boolean {
-    return this.accessToken !== null && this.tokenExpiry !== null && Date.now() < this.tokenExpiry;
-  }
+*/
 }
 
-// Exportar uma instância singleton
 export const ifoodService = new IfoodService();

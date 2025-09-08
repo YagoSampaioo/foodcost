@@ -19,6 +19,7 @@ Access to fetch at 'https://merchant-api.ifood.com.br/oauth/token' from origin '
 Criei um servidor proxy Node.js que resolve o problema de CORS:
 
 ### **📁 Estrutura Criada:**
+
 ```
 server/
 ├── proxy.js          # Servidor proxy principal
@@ -31,6 +32,7 @@ server/
 ## 🚀 **Como Usar (Passo a Passo)**
 
 ### **1. Instalar Dependências**
+
 ```bash
 # Navegar para a pasta do servidor
 cd server
@@ -42,6 +44,7 @@ npm install
 ### **2. Iniciar o Servidor Proxy**
 
 #### **Windows:**
+
 ```bash
 # Duplo clique no arquivo start.bat
 # OU execute no terminal:
@@ -49,6 +52,7 @@ start.bat
 ```
 
 #### **Linux/Mac:**
+
 ```bash
 # Dar permissão de execução
 chmod +x start.sh
@@ -58,6 +62,7 @@ chmod +x start.sh
 ```
 
 #### **Manual:**
+
 ```bash
 npm start
 # ou
@@ -65,6 +70,7 @@ npm run dev  # para desenvolvimento com auto-reload
 ```
 
 ### **3. Verificar se está Funcionando**
+
 ```bash
 # Teste básico
 curl http://localhost:3001/api/test
@@ -74,6 +80,7 @@ curl http://localhost:3001/api/test
 ```
 
 ### **4. Testar a Integração**
+
 Agora você pode testar a integração com iFood na aplicação React. O proxy irá:
 
 - ✅ Resolver problemas de CORS
@@ -84,44 +91,50 @@ Agora você pode testar a integração com iFood na aplicação React. O proxy i
 ## 🔧 **Como Funciona**
 
 ### **Antes (Com CORS):**
+
 ```
 Frontend (localhost:5173) ❌→ API iFood
 ```
 
 ### **Depois (Com Proxy):**
+
 ```
 Frontend (localhost:5173) ✅→ Proxy (localhost:3001) ✅→ API iFood
 ```
 
 ### **Fluxo de Autenticação:**
+
 1. Frontend envia credenciais para `/api/ifood/auth`
 2. Proxy faz requisição OAuth2 para iFood
 3. Proxy retorna token para frontend
 4. Frontend usa token para outras requisições
 
 ### **Fluxo de Vendas:**
+
 1. Frontend envia token para `/api/ifood/sales/:merchantId`
 2. Proxy faz requisição autenticada para iFood
 3. Proxy retorna dados de vendas para frontend
 
 ## 📡 **Endpoints do Proxy**
 
-| Endpoint | Método | Descrição |
-|----------|--------|-----------|
-| `/api/test` | GET | Teste de funcionamento |
-| `/api/ifood/auth` | POST | Autenticação OAuth2 |
-| `/api/ifood/sales/:merchantId` | GET | Buscar vendas |
-| `/api/ifood/check` | GET | Verificar conexão |
+| Endpoint                       | Método | Descrição              |
+| ------------------------------ | ------ | ---------------------- |
+| `/api/test`                    | GET    | Teste de funcionamento |
+| `/api/ifood/auth`              | POST   | Autenticação OAuth2    |
+| `/api/ifood/sales/:merchantId` | GET    | Buscar vendas          |
+| `/api/ifood/check`             | GET    | Verificar conexão      |
 
 ## 🐛 **Troubleshooting**
 
 ### **Erro: "Cannot find module 'express'"**
+
 ```bash
 cd server
 npm install
 ```
 
 ### **Erro: "Port already in use"**
+
 ```bash
 # Windows
 netstat -ano | findstr :3001
@@ -133,11 +146,13 @@ kill -9 <PID>
 ```
 
 ### **Erro: "ECONNREFUSED"**
+
 - Verificar se o servidor proxy está rodando
 - Verificar se a porta 3001 está livre
 - Verificar logs do servidor
 
 ### **Erro de CORS persistente**
+
 - Verificar se o proxy está rodando na porta 3001
 - Verificar se o frontend está usando URLs do proxy
 - Verificar logs do navegador
@@ -165,6 +180,7 @@ O servidor proxy exibe logs detalhados:
 ## 🚀 **Próximos Passos**
 
 ### **1. Teste Local**
+
 ```bash
 # Terminal 1: Iniciar proxy
 cd server
@@ -175,11 +191,13 @@ npm start
 ```
 
 ### **2. Verificar Logs**
+
 - Console do servidor proxy
 - Console do navegador
 - Network tab do DevTools
 
 ### **3. Testar Endpoints**
+
 ```bash
 # Teste básico
 curl http://localhost:3001/api/test
@@ -187,7 +205,7 @@ curl http://localhost:3001/api/test
 # Teste de autenticação (substitua pelas suas credenciais)
 curl -X POST http://localhost:3001/api/ifood/auth \
   -H "Content-Type: application/json" \
-  -d '{"clientId":"acac8cf5-4e63-4433-950d-e1c79d76fa34","clientSecret":"gvlkvyr7204edc20ozpe5fyhhwhbvbfss4tb6fxbjvsxgd8cofix1a12j9urs94ohwpkf9wtjqjr7pj46oosd9cs6mcz97y9xqk"}'
+  -d '{"client_id":"acac8cf5-4e63-4433-950d-e1c79d76fa34","clientSecret":"gvlkvyr7204edc20ozpe5fyhhwhbvbfss4tb6fxbjvsxgd8cofix1a12j9urs94ohwpkf9wtjqjr7pj46oosd9cs6mcz97y9xqk"}'
 ```
 
 ## 💡 **Dicas Importantes**
@@ -219,4 +237,3 @@ curl -X POST http://localhost:3001/api/ifood/auth \
 ---
 
 **Precisa de ajuda?** Verifique os logs do servidor proxy e console do navegador para identificar problemas específicos.
-
